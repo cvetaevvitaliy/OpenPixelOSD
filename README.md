@@ -21,7 +21,7 @@ The project aims to create a software monochrome On-Screen Display (OSD) for VPV
   - DMA1 Channel 1 transfers the buffer containing precise timing information for switching the multiplexer connected to the OPAMP1 input.
   - DMA1 Channel 2 transfers the buffer containing brightness values for each pixel to **DAC3 Channel 1** for pixel formation in the line.
 
-![OpenPixelOSD Block Diagram](doc/pic/internal block diagram.png)
+![OpenPixelOSD Block Diagram](doc/pic/internal-block-diagram.png)
 
 ### Operating Principle
 
@@ -78,7 +78,7 @@ OpenPixelOSD — це open-source проєкт для генерації та н
     - DMA1 CH1 відповідає за передачу буфера який містить точний час коли саме треба перемкнути мультіплексор який під'єднаний до входу OPAMP1.
     - DMA1 CH2 відповідає за передачу буфера (який містить яскравість кожного пікселя) для DAC3 CH1 для формування пікселів в лінії.
 
-![OpenPixelOSD Block Diagram](doc/pic/internal block diagram.png)
+![OpenPixelOSD Block Diagram](doc/pic/internal-block-diagram.png)
 
 
 ### Принцип роботи
