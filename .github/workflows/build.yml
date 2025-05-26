@@ -1,0 +1,40 @@
+name: build-ubuntu
+
+env:
+  BUILD_TYPE: Release
+
+# Triggers the workflow on push or pull request events
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
+      uses: carlosperate/arm-none-eabi-gcc-action@v1
+      with:
+        release: '14.2.Rel1' # <-- The compiler release to use
+
+    - name : Create build directory
+      run: mkdir -p build
+
+    - name: build
+      working-directory: ./build  
+      run: |
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        make -j4
+
+    - name: Download Artifacts HEX
+      uses: actions/upload-artifact@v4
+      with:
+        name: "Download artifacts - HEX"
+        path: ${{runner.workspace}}/OpenPixelOSD/build/*.hex
+
+    - name: Download Artifacts BIN
+      uses: actions/upload-artifact@v4
+      with:
+        name: "Download artifacts - BIN"
+        path: ${{runner.workspace}}/OpenPixelOSD/build/*.bin
