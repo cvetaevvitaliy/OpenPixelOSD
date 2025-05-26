@@ -46,17 +46,19 @@ venv/
 *.swp
 
 .idea/
-.build/
-.cmake-build-*/
+/build/
+/cmake-build-*/
 /Cube/cmake/
 /Cube/Core/
 /Cube/Drivers/
 /Cube/Middlewares/
 /Cube/USB_Device/
+/Cube/
 /Cube/.mxproject
 /Cube/.project
 /Cube/CMakeLists.txt
 /Cube/CMakePresets.json
 /Cube/startup_stm32g4xx.s
 /Cube/stm32g431cbux_flash.ld
+doc/.$OpenPixelOSD.drawio.bkp
 
