@@ -56,7 +56,7 @@ void video_overlay_init(void)
     TIM1_Init(); // TIM1 for video line generation
     TIM2_Init(); // TIM2 detect HSYNC VSYNC video input
     TIM3_Init(); // TIM3 detect HSYNC VSYNC video generator
-    //TIM4_Init(); // for time stamp (1ms) not used now
+    TIM4_Init(); // TIM4 delay for start video generator
     TIM17_Init(); // TIM17 for video generator output (PWM ~31.8us)
     COMP3_Init(); // COMP3 for video sync detection
     COMP4_Init(); // COMP4 for video generator sync detection
