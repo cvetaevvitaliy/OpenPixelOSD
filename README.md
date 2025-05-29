@@ -50,6 +50,11 @@ This resource provides authoritative timing diagrams, signal structures, and tec
 
 TODO:
 
+
+### YouTube Video
+
+[![YouTube](doc/pic/screenshot.png)](https://youtu.be/GXBrZya5-nY)
+
 ## License
 
 Open source software — see LICENSE in the repository.
