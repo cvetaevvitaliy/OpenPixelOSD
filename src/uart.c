@@ -4,7 +4,7 @@
  */
 #include "main.h"
 
-void UART1_Init(void)
+void uart1_init(void)
 {
     LL_USART_InitTypeDef USART_InitStruct = {0};
 
@@ -42,7 +42,7 @@ void UART1_Init(void)
 
     LL_DMA_SetChannelPriorityLevel(DMA2, LL_DMA_CHANNEL_1, LL_DMA_PRIORITY_LOW);
 
-    LL_DMA_SetMode(DMA2, LL_DMA_CHANNEL_1, LL_DMA_MODE_NORMAL);
+    LL_DMA_SetMode(DMA2, LL_DMA_CHANNEL_1, LL_DMA_MODE_CIRCULAR);
 
     LL_DMA_SetPeriphIncMode(DMA2, LL_DMA_CHANNEL_1, LL_DMA_PERIPH_NOINCREMENT);
 
@@ -89,4 +89,53 @@ void UART1_Init(void)
     while((!(LL_USART_IsActiveFlag_TEACK(USART1))) || (!(LL_USART_IsActiveFlag_REACK(USART1))))
     {
     }
+}
+
+void uart1_dma_rx_start(uint32_t *buff, uint32_t len)
+{
+    LL_DMA_DisableChannel(DMA2, LL_DMA_CHANNEL_1);
+    LL_DMA_SetPeriphRequest(DMA2, LL_DMA_CHANNEL_1, LL_DMAMUX_REQ_USART1_RX);
+    LL_DMA_SetDataTransferDirection(DMA2, LL_DMA_CHANNEL_1, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+    LL_DMA_SetChannelPriorityLevel(DMA2, LL_DMA_CHANNEL_1, LL_DMA_PRIORITY_HIGH);
+    LL_DMA_SetMode(DMA2, LL_DMA_CHANNEL_1, LL_DMA_MODE_CIRCULAR);
+    LL_DMA_SetPeriphIncMode(DMA2, LL_DMA_CHANNEL_1, LL_DMA_PERIPH_NOINCREMENT);
+    LL_DMA_SetMemoryIncMode(DMA2, LL_DMA_CHANNEL_1, LL_DMA_MEMORY_INCREMENT);
+    LL_DMA_SetPeriphSize(DMA2, LL_DMA_CHANNEL_1, LL_DMA_PDATAALIGN_BYTE);
+    LL_DMA_SetMemorySize(DMA2, LL_DMA_CHANNEL_1, LL_DMA_MDATAALIGN_BYTE);
+    LL_DMA_ConfigAddresses(DMA2, LL_DMA_CHANNEL_1,
+                           (uint32_t)&USART1->RDR,
+                           (uint32_t)buff,
+                           LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+    LL_DMA_SetDataLength(DMA2, LL_DMA_CHANNEL_1, len);
+
+    LL_DMA_EnableIT_HT(DMA2, LL_DMA_CHANNEL_1);
+    LL_DMA_EnableIT_TC(DMA2, LL_DMA_CHANNEL_1);
+
+    LL_DMA_EnableChannel(DMA2, LL_DMA_CHANNEL_1);
+
+    LL_USART_EnableDMAReq_RX(USART1);
+
+    NVIC_SetPriority(DMA2_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 1, 0));
+    NVIC_EnableIRQ(DMA2_Channel1_IRQn);
+}
+
+void uart1_dma_tx(uint8_t *data, uint32_t len)
+{
+    if (len == 0) return;
+
+    LL_DMA_DisableChannel(DMA2, LL_DMA_CHANNEL_2);
+
+    LL_DMA_ClearFlag_TC2(DMA2);
+    LL_DMA_ClearFlag_TE2(DMA2);
+
+    LL_DMA_ConfigAddresses(DMA2, LL_DMA_CHANNEL_2,
+                           (uint32_t)data,
+                           LL_USART_DMA_GetRegAddr(USART1, LL_USART_DMA_REG_DATA_TRANSMIT),
+                           LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+
+    LL_DMA_SetDataLength(DMA2, LL_DMA_CHANNEL_2, len);
+
+    LL_USART_EnableDMAReq_TX(USART1);
+
+    LL_DMA_EnableChannel(DMA2, LL_DMA_CHANNEL_2);
 }

@@ -10,6 +10,7 @@ target_compile_definitions(stm32cubemx INTERFACE
 	USE_FULL_LL_DRIVER 
 	USE_HAL_DRIVER 
 	STM32G431xx
+	MCU_TYPE="STM32G431"
     $<$<CONFIG:Debug>:DEBUG>
 )
 

@@ -6,6 +6,10 @@
 #define LOGO_H
 #include <stdint.h>
 
+#define LOGO_WIDTH     (180)
+#define LOGO_HEIGHT    (152)
+#define LOGO_ROW_BYTES ((LOGO_WIDTH * 2 + 7) / 8)
+
 __attribute__((section(".logo")))
 const uint8_t logo_data[6840] = {
   0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,

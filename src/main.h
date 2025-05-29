@@ -20,6 +20,11 @@
 #include "stm32g4xx_ll_usart.h"
 #include "stm32g4xx_ll_gpio.h"
 
+#define FW_VERSION "1.0.0"
+#ifndef MCU_TYPE
+#define MCU_TYPE "---------"
+#endif /* MCU_TYPE */
+
 #define USER_KEY_Pin LL_GPIO_PIN_13
 #define USER_KEY_GPIO_Port GPIOC
 #define COMP3_INP_VIDEO_IN_Pin LL_GPIO_PIN_0
@@ -73,6 +78,6 @@ void TIM17_Init(void);
 void COMP3_Init(void);
 void COMP4_Init(void);
 
-void UART1_Init(void);
+void uart1_init(void);
 
 #endif /* __MAIN_H */

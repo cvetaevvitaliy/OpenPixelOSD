@@ -39,6 +39,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/stm32g4xx/sysmem.c
         ./src/stm32g4xx/syscalls.c
         ./src/stm32g4xx/system.c
+        ./src/msp/msp.c
         ./src/gpio.c
         ./src/dac.c
         ./src/dma.c
@@ -49,7 +50,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/video_gen.c
         ./src/video_overlay.c
         ./src/canvas_char.c
-        ./src/pixel_draw.c
+        ./src/msp_displayport.c
         ./src/main.c
 
 )
@@ -57,6 +58,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/stm32g4xx
+        ./src/msp
         ./src
 )
 

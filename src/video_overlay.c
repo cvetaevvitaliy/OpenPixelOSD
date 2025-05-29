@@ -3,6 +3,7 @@
  * Copyright (C) 2025 Vitaliy N <vitaliy.nimych@gmail.com>
  */
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 #include "video_overlay.h"
 #include "system.h"
@@ -11,9 +12,8 @@
 #include "fonts/font_bf_default.h"
 #include "logo/logo.h"
 #include "canvas_char.h"
-#include "pixel_draw.h"
 
-#define TIM2_TICK_MS     (1e6f / 170000000)
+#define TIM2_TICK_MS        (1e6f / 170000000)
 
 // OPAMP1 multiplexer constants
 #define OPAMP_CONST_IO0     0x108000E1U  // Positive Input IO0 (e.g., PA1) -
@@ -32,13 +32,24 @@
 #define DAC_GRAY            DAC12BIT_FROM_MV(650)
 #define MAX_RENDER_LINE     (305) // for PAL
 
+#define LOGO_OFFSET_X       (120)
+#define LOGO_OFFSET_Y       (25)
+
+typedef enum {
+    PX_BLACK       = 0,
+    PX_TRANSPARENT = 1,
+    PX_WHITE       = 2,
+    PX_GRAY        = 3
+  } px_t;
+
 static uint16_t dac_buff[2][LINE_BUF_SZ];   // DAC double buffer for draw pixel (12-bit CH1)  DMA HALF_WORLD/WORLD
 static uint32_t opamp_buff[2][LINE_BUF_SZ]; // double buffer for OPAMP1 multiplexer (32-bit)  DMA WORLD/WORLD
 CCMRAM_BSS static bool buf_idx = 0; // current buffer index for double buffering
 CCMRAM_DATA static uint32_t video_source = OPAMP_CONST_IO2; // OPAMP_CONST_IO1 - video gen, OPAMP_CONST_IO2 - video input
 extern volatile bool video_gen_enabled;
-extern char canvas_char_map[ROW_SIZE][COLUMN_SIZE];
-extern uint8_t raw_pixel_buff[PIXEL_MAP_HEIGHT][PACKED_PIXELS_PER_ROW];
+extern char canvas_char_map[2][ROW_SIZE][COLUMN_SIZE];
+extern uint8_t active_buffer;
+CCMRAM_DATA bool show_logo = true;
 
 EXEC_RAM static void init_buffers(bool curr_buff)
 {
@@ -46,6 +57,16 @@ EXEC_RAM static void init_buffers(bool curr_buff)
         dac_buff[curr_buff][j] = DAC_GRAY;
         opamp_buff[curr_buff][j] = video_source;
     }
+}
+
+static void show_version(void)
+{
+    char str[COLUMN_SIZE];
+    sprintf(str, "FW: %s", FW_VERSION);
+    canvas_char_write(8, 9, str, strlen(str));
+    sprintf(str, "MCU: %s", MCU_TYPE);
+    canvas_char_write(8, 10, str, strlen(str));
+    canvas_char_draw_complete();
 }
 
 void video_overlay_init(void)
@@ -87,73 +108,15 @@ void video_overlay_init(void)
 
     init_buffers(0);
     init_buffers(1);
-    pixel_draw_buff_init();
-    canvas_char_clean();
+    canvas_char_flush_map();
 
-#if 1 // Debug symbols, raw pixel buffer, only for test
-    // Copy logo data to the raw pixel buffer
-    memcpy(raw_pixel_buff, logo_data, sizeof(raw_pixel_buff));
-
-    pixel_draw_circle(100, 30, 10, PX_WHITE);
-
-    pixel_draw_circle(100, 25, 15, PX_WHITE);
-
-    pixel_draw_circle(100, 45, 15, PX_GRAY);
-
-    pixel_draw_fill_circle(100, 65, 15, PX_GRAY);
-
-    pixel_draw_fill_circle(100, 85, 15, PX_BLACK);
-
-    pixel_draw_fill_circle(100, 105, 15, PX_WHITE);
-
-    pixel_draw_rect(100, 125, 20, 20, PX_WHITE);
-
-    pixel_draw_rect(100, 150, 20, 20, PX_GRAY);
-
-    uint32_t square_size = 10;
-    for (uint32_t y = 60; y < 120; y++) {
-        for (uint32_t x = 30; x < 90; x++) {
-            uint32_t cell_x = x / square_size;
-            uint32_t cell_y = y / square_size;
-            px_t px = ((cell_x + cell_y) % 2 == 0) ? PX_BLACK : PX_WHITE;
-            pixel_draw_set_px(x, y, px);
-        }
-    }
-
-    uint16_t x = 0, y = 0;
-    for (uint8_t ch = 0; ch < 0xff; ++ch) {
-      canvas_char_map[y][x] = (char)ch;
-      ++x;
-      if (x >= COLUMN_SIZE) {
-        x = 0;
-        ++y;
-        if (y >= ROW_SIZE) {
-          break;
-        }
-      }
-    }
-
-#endif
-
+    show_version();
 }
 
-EXEC_RAM static inline px_t pixel_buff_get(uint32_t row, uint32_t col)
-{
-    if (row >= PIXEL_MAP_HEIGHT || col >= PIXEL_MAP_WIDTH) return PX_TRANSPARENT;
-    register uint32_t bit   = col * 2;
-    register uint32_t idx   = bit >> 3;
-    register uint32_t shift = 6 - (bit & 7);
-    return (raw_pixel_buff[row][idx] >> shift) & 0x3u;
-}
-
-EXEC_RAM static void squash_canvas_raw_pixel_buff(char c, uint32_t glyph_row, uint32_t x_off, uint32_t local_draw_line)
+EXEC_RAM static void squash_canvas_raw_pixel_buff(char c, uint32_t glyph_row, uint32_t x_off)
 {
     register const uint8_t * const glyph = &font_data[(uint8_t)c * FONT_STRIDE];
     register const uint32_t row_offset = glyph_row * BYTES_PER_ROW;
-
-    register uint32_t global_col;
-    register uint32_t px_row, px_col;
-    register px_t px;
     register uint16_t dac_val;
     register uint32_t opa_val;
 
@@ -165,20 +128,6 @@ EXEC_RAM static void squash_canvas_raw_pixel_buff(char c, uint32_t glyph_row, ui
         register uint8_t raw_byte = glyph[byte_index];
         register uint8_t pixel = (raw_byte >> (6 - bit_offset)) & 0x03;
 
-#if 1 // RAW pixel overlay drawing
-        global_col = x_off + col - OFFSET_X;
-
-        px_row = (local_draw_line - OFFSET_Y) / 2;
-        px_col = global_col / 2;
-
-        px = (px_row < PIXEL_MAP_HEIGHT && px_col < PIXEL_MAP_WIDTH)
-                ? pixel_buff_get(px_row, px_col)
-                : PX_TRANSPARENT;
-
-        if (px != PX_TRANSPARENT) {
-            pixel = px;
-        }
-#endif
         switch (pixel) {
         case PX_BLACK: dac_val = DAC_BLACK; opa_val = OPAMP_CONST_DAC; break;
         case PX_WHITE: dac_val = DAC_WHITE; opa_val = OPAMP_CONST_DAC; break;
@@ -190,6 +139,56 @@ EXEC_RAM static void squash_canvas_raw_pixel_buff(char c, uint32_t glyph_row, ui
         opamp_buff[buf_idx][x_off + col] = opa_val;
     }
     opamp_buff[buf_idx][x_off + FONT_WIDTH] = video_source;
+}
+
+void render_overlay_logo_line(uint16_t line)
+{
+    if (line >= MAX_RENDER_LINE) return;
+
+    // Logo line considering vertical offset
+    if (line < LOGO_OFFSET_Y || (line - LOGO_OFFSET_Y) >= LOGO_HEIGHT) {
+        // Line outside the logo area — do nothing, keep existing buffer contents
+        return;
+    }
+
+    uint16_t logo_row = line - LOGO_OFFSET_Y;
+    const uint8_t *logo_line_ptr = &logo_data[logo_row * LOGO_ROW_BYTES];
+
+    // Buffer index starting from horizontal offset LOGO_OFFSET_X
+    uint16_t buf_index = LOGO_OFFSET_X;
+
+    for (uint16_t logo_col = 0; logo_col < LOGO_WIDTH; logo_col++) {
+        if (buf_index >= LINE_BUF_SZ) break;
+
+        uint32_t bit_pos = logo_col * 2;
+        uint32_t byte_idx = bit_pos >> 3;
+        uint32_t shift = 6 - (bit_pos & 7);
+
+        px_t px = (px_t)((logo_line_ptr[byte_idx] >> shift) & 0x3);
+
+        // If pixel is transparent — skip (keep existing buffer value)
+        if (px == PX_TRANSPARENT) {
+            buf_index++;
+            continue;
+        }
+
+        uint16_t dac_val;
+        uint32_t opa_val;
+
+        switch (px) {
+        case PX_BLACK:       dac_val = DAC_BLACK; opa_val = OPAMP_CONST_DAC; break;
+        case PX_WHITE:       dac_val = DAC_WHITE; opa_val = OPAMP_CONST_DAC; break;
+        case PX_GRAY:        dac_val = DAC_GRAY;  opa_val = OPAMP_CONST_DAC; break;
+        case PX_TRANSPARENT:
+        default:             dac_val = DAC_BLACK; opa_val = video_source;    break;
+        }
+
+        // Overlay — overwrite only if pixel is not transparent
+        dac_buff[buf_idx][buf_index] = dac_val;
+        opamp_buff[buf_idx][buf_index] = opa_val;
+
+        buf_index++;
+    }
 }
 
 EXEC_RAM static void render_line(uint16_t line)
@@ -226,13 +225,12 @@ EXEC_RAM static void render_line(uint16_t line)
 
     // Render each character of the map
     for (i = 0; i < COLUMN_SIZE; i++) {
-        c = canvas_char_map[map_row][i];
-        squash_canvas_raw_pixel_buff(c, glyph_row, OFFSET_X + i * FONT_WIDTH, draw_line);
+        c = canvas_char_map[!active_buffer][map_row][i]; // draw previous char map buffer
+        squash_canvas_raw_pixel_buff(c, glyph_row, OFFSET_X + i * FONT_WIDTH);
     }
 
     opamp_buff[buf_idx][LINE_BUF_SZ-1] = video_source;
 }
-
 
 EXEC_RAM static void push_line_to_dma(uint16_t line)
 {
@@ -260,6 +258,9 @@ EXEC_RAM static void push_line_to_dma(uint16_t line)
     LL_TIM_EnableCounter(TIM1);
 
     render_line(line);
+    if (show_logo) {
+        render_overlay_logo_line(line);
+    }
 
 }
 
