@@ -2,14 +2,15 @@
 /**
  * Copyright (C) 2025 Vitaliy N <vitaliy.nimych@gmail.com>
  */
-#include <stdio.h>
-#include <string.h>
 #include "msp_displayport.h"
 #include "canvas_char.h"
 #include "main.h"
 #include "msp.h"
 #include "uart.h"
 #include "usb.h"
+#include "fonts/update_font.h"
+#include <stdio.h>
+#include <string.h>
 
 typedef enum {
     MSP_DISPLAYPORT_KEEPALIVE,
@@ -29,7 +30,7 @@ typedef enum
 } msp_owner_t;
 
 #define UART_TX_BUF_SIZE (64)
-uint8_t uart_tx_buf[UART_TX_BUF_SIZE];
+static uint8_t msp_tx_buff[UART_TX_BUF_SIZE];
 
 extern char canvas_char_map[2][ROW_SIZE][COLUMN_SIZE];
 extern uint8_t active_buffer;
@@ -59,16 +60,18 @@ EXEC_RAM static void msp_callback(uint8_t owner, msp_version_t msp_version, uint
             switch(sub_cmd) {
             case MSP_DISPLAYPORT_KEEPALIVE: // 0 -> Open/Keep-Alive DisplayPort
             {
-                if (owner == MSP_OWNER_UART) {
-                    static bool displayport_initialized = false;
-                    if (!displayport_initialized) {
-                        displayport_initialized = true;
-                        show_logo = false;
-                        // Send canvas size to FC
-                        uint8_t data[2] = {COLUMN_SIZE, ROW_SIZE};
-                        uint16_t len = construct_msp_command_v1(uart_tx_buf, MSP_SET_OSD_CANVAS, data, 2, MSP_OUTBOUND);
-                        uart1_tx_dma(uart_tx_buf, len);
-                    }
+                static bool displayport_initialized = false;
+                if (!displayport_initialized) {
+                    displayport_initialized = true;
+                    show_logo = false;
+                    // Send canvas size to FC
+                    uint8_t data[2] = {COLUMN_SIZE, ROW_SIZE};
+                    uint16_t len = construct_msp_command_v1(msp_tx_buff, MSP_SET_OSD_CANVAS, data, 2, MSP_OUTBOUND);
+                    if (owner == MSP_OWNER_USB) {
+                        printf((char*)&msp_tx_buff);
+                    } else if (owner == MSP_OWNER_UART) {
+                        uart1_tx_dma(msp_tx_buff, len);
+                    } else { return; } // doo nothing
                 }
             }
                 break;
@@ -96,6 +99,10 @@ EXEC_RAM static void msp_callback(uint8_t owner, msp_version_t msp_version, uint
             default:
                 break;
             }
+        }
+
+        if(msp_cmd == MSP_OSD_CHAR_WRITE) {
+            update_font_symbol_write(payload[0], &payload[1], data_size - 1);
         }
     }
         break;

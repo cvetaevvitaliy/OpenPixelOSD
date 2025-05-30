@@ -52,6 +52,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/video_overlay.c
         ./src/canvas_char.c
         ./src/msp_displayport.c
+        ./src/fonts/update_font.c
         ./src/main.c
 
 )
