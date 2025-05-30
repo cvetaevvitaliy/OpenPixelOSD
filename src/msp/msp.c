@@ -124,7 +124,7 @@ EXEC_RAM void msp_process_received_data(msp_port_t *mspPort, uint8_t c)
         if (mspPort->checksum1 == c) {
             mspPort->msp_state = MSP_COMMAND_RECEIVED;
             if (mspPort->callback != 0) {
-                mspPort->callback(mspPort->msp_version, mspPort->msp_cmd, mspPort->data_size, mspPort->payload);
+                mspPort->callback(mspPort->owner, mspPort->msp_version, mspPort->msp_cmd, mspPort->data_size, mspPort->payload);
                 mspPort->msp_state = MSP_IDLE;
             }
         } else {
@@ -195,7 +195,7 @@ EXEC_RAM void msp_process_received_data(msp_port_t *mspPort, uint8_t c)
         if (mspPort->checksum2 == c) {
             mspPort->msp_state = MSP_COMMAND_RECEIVED;
             if (mspPort->callback != 0) {
-                mspPort->callback(mspPort->msp_version, mspPort->msp_cmd, mspPort->data_size, mspPort->payload);
+                mspPort->callback(mspPort->owner, mspPort->msp_version, mspPort->msp_cmd, mspPort->data_size, mspPort->payload);
                 mspPort->msp_state = MSP_IDLE;
             }
         } else {

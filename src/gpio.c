@@ -4,7 +4,7 @@
  */
 #include "main.h"
 
-void GPIO_Init(void)
+void gpio_init(void)
 {
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 

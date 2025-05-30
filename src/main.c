@@ -2,23 +2,26 @@
 /**
  * Copyright (C) 2025 Vitaliy N <vitaliy.nimych@gmail.com>
  */
-#include <usb_device.h>
+#include <stdio.h>
 #include "main.h"
+#include "msp_displayport.h"
 #include "system.h"
+#include "usb.h"
 #include "video_gen.h"
 #include "video_overlay.h"
-#include "msp_displayport.h"
 
+#define LED_BLINK_INTERVAL 100 // milliseconds
+
+void led_blink(void);
 
 int main (void)
 {
 
     HAL_Init();
     SystemClock_Config();
-    GPIO_Init();
-    MX_USB_Device_Init();
-    DMA_Init();
-    TIM7_Init();
+    gpio_init();
+    usb_init();
+    dma_init();
 
     video_overlay_init();
 
@@ -26,7 +29,18 @@ int main (void)
 
     while (1)
     {
-        GPIOC->ODR ^= LL_GPIO_PIN_6;
-        LL_mDelay(100);
+        msp_loop_process();
+        led_blink();
     }
 }
+
+void led_blink(void)
+{
+    static uint32_t last_tick = 0;
+
+    if ((HAL_GetTick() - last_tick) >= LED_BLINK_INTERVAL) {
+        LED_STATE_GPIO_Port->ODR ^= LED_STATE_Pin;
+        last_tick = HAL_GetTick();
+    }
+}
+

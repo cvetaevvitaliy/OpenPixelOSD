@@ -3,6 +3,18 @@
  * Copyright (C) 2025 Vitaliy N <vitaliy.nimych@gmail.com>
  */
 #include "main.h"
+#include <stdbool.h>
+
+CCMRAM_BSS static uint32_t dma_old_pos = 0;
+
+#define UART_RX_RING_BUF_SIZE 512
+#define UART_RX_DMA_BUF_SIZE (2)
+static uint8_t uart_rx_buf[UART_RX_DMA_BUF_SIZE];
+static uint8_t uart_rx_ring_buff[UART_RX_RING_BUF_SIZE];
+static volatile uint16_t uart_rx_head = 0;
+static volatile uint16_t uart_rx_tail = 0;
+
+static void uart_rx_ring_put(uint8_t data);
 
 void uart1_init(void)
 {
@@ -91,7 +103,7 @@ void uart1_init(void)
     }
 }
 
-void uart1_dma_rx_start(uint32_t *buff, uint32_t len)
+void uart1_dma_rx_start(void)
 {
     LL_DMA_DisableChannel(DMA2, LL_DMA_CHANNEL_1);
     LL_DMA_SetPeriphRequest(DMA2, LL_DMA_CHANNEL_1, LL_DMAMUX_REQ_USART1_RX);
@@ -104,9 +116,9 @@ void uart1_dma_rx_start(uint32_t *buff, uint32_t len)
     LL_DMA_SetMemorySize(DMA2, LL_DMA_CHANNEL_1, LL_DMA_MDATAALIGN_BYTE);
     LL_DMA_ConfigAddresses(DMA2, LL_DMA_CHANNEL_1,
                            (uint32_t)&USART1->RDR,
-                           (uint32_t)buff,
+                           (uint32_t)uart_rx_buf,
                            LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-    LL_DMA_SetDataLength(DMA2, LL_DMA_CHANNEL_1, len);
+    LL_DMA_SetDataLength(DMA2, LL_DMA_CHANNEL_1, UART_RX_DMA_BUF_SIZE);
 
     LL_DMA_EnableIT_HT(DMA2, LL_DMA_CHANNEL_1);
     LL_DMA_EnableIT_TC(DMA2, LL_DMA_CHANNEL_1);
@@ -119,7 +131,7 @@ void uart1_dma_rx_start(uint32_t *buff, uint32_t len)
     NVIC_EnableIRQ(DMA2_Channel1_IRQn);
 }
 
-void uart1_dma_tx(uint8_t *data, uint32_t len)
+void uart1_tx_dma(uint8_t *data, uint32_t len)
 {
     if (len == 0) return;
 
@@ -138,4 +150,55 @@ void uart1_dma_tx(uint8_t *data, uint32_t len)
     LL_USART_EnableDMAReq_TX(USART1);
 
     LL_DMA_EnableChannel(DMA2, LL_DMA_CHANNEL_2);
+}
+
+void DMA2_Channel1_IRQHandler(void)
+{
+    if (LL_DMA_IsActiveFlag_HT1(DMA2)) {
+        LL_DMA_ClearFlag_HT1(DMA2);
+        // Processing the first half of the buffer (0 .. UART_RX_BUF_SIZE/2 - 1)
+        for (uint32_t i = 0; i < UART_RX_DMA_BUF_SIZE / 2; i++) {
+            uart_rx_ring_put(uart_rx_buf[i]);
+        }
+        dma_old_pos = UART_RX_DMA_BUF_SIZE / 2;
+    }
+
+    if (LL_DMA_IsActiveFlag_TC1(DMA2)) {
+        LL_DMA_ClearFlag_TC1(DMA2);
+        // Processing the second half of the buffer (UART_RX_BUF_SIZE/2 .. UART_RX_BUF_SIZE - 1)
+        for (uint32_t i = UART_RX_DMA_BUF_SIZE / 2; i < UART_RX_DMA_BUF_SIZE; i++) {
+            uart_rx_ring_put(uart_rx_buf[i]);
+        }
+        dma_old_pos = 0;
+    }
+}
+
+void DMA2_Channel2_IRQHandler(void)
+{
+    if (LL_DMA_IsActiveFlag_TC2(DMA2))
+    {
+        LL_DMA_ClearFlag_TC2(DMA2);
+    }
+    if (LL_DMA_IsActiveFlag_TE2(DMA2))
+    {
+        LL_DMA_ClearFlag_TE2(DMA2);
+    }
+}
+
+static void uart_rx_ring_put(uint8_t data)
+{
+    uint16_t next = (uart_rx_head + 1) % UART_RX_RING_BUF_SIZE;
+    if (next != uart_rx_tail) {
+        uart_rx_ring_buff[uart_rx_head] = data;
+        uart_rx_head = next;
+    }
+}
+
+bool uart_rx_ring_get(uint8_t *data)
+{
+    if (uart_rx_head == uart_rx_tail) return false;
+
+    *data = uart_rx_ring_buff[uart_rx_tail];
+    uart_rx_tail = (uart_rx_tail + 1) % UART_RX_RING_BUF_SIZE;
+    return true;
 }

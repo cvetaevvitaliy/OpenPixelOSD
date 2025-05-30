@@ -59,12 +59,12 @@
 #define DAC8BIT_FROM_MV(mV)       (((uint32_t)(mV) * 255) / 3300)
 
 
-void GPIO_Init(void);
+void gpio_init(void);
 
 void DAC1_Init(void);
 void DAC3_Init(void);
 
-void DMA_Init(void);
+void dma_init(void);
 
 void OPAMP1_Init(void);
 
@@ -77,7 +77,5 @@ void TIM17_Init(void);
 
 void COMP3_Init(void);
 void COMP4_Init(void);
-
-void uart1_init(void);
 
 #endif /* __MAIN_H */

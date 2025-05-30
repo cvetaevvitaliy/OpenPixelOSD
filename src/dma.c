@@ -4,7 +4,7 @@
  */
 #include "main.h"
 
-void DMA_Init(void)
+void dma_init(void)
 {
 
   /* Init with LL driver */

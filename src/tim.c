@@ -131,7 +131,7 @@ void TIM4_Init(void)
     LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM4);
 
     /* TIM4 interrupt Init */
-    NVIC_SetPriority(TIM4_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    NVIC_SetPriority(TIM4_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
     NVIC_EnableIRQ(TIM4_IRQn);
 
     TIM_InitStruct.Prescaler = 16999;
@@ -154,12 +154,12 @@ void TIM7_Init(void)
     LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM7);
 
     /* TIM7 interrupt Init */
-    NVIC_SetPriority(TIM7_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    NVIC_SetPriority(TIM7_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
     NVIC_EnableIRQ(TIM7_IRQn);
 
-    TIM_InitStruct.Prescaler = 0;
+    TIM_InitStruct.Prescaler = 169;
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-    TIM_InitStruct.Autoreload = 16;
+    TIM_InitStruct.Autoreload = 9999; // 10ms
     LL_TIM_Init(TIM7, &TIM_InitStruct);
     LL_TIM_EnableARRPreload(TIM7);
     LL_TIM_SetTriggerOutput(TIM7, LL_TIM_TRGO_UPDATE);

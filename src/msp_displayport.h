@@ -8,5 +8,6 @@
 
 
 void msp_displayport_init(void);
+void msp_loop_process(void);
 
 #endif //MSP_DISPLAYPORT_H

@@ -47,7 +47,7 @@ typedef enum {
     MSP_PACKET_RESPONSE
 }msp_packet_type_t;
 
-typedef void (*msp_msg_callback)(msp_version_t msp_version, uint16_t msp_cmd, uint16_t data_size, const uint8_t *payload);
+typedef void (*msp_msg_callback)(uint8_t owner, msp_version_t msp_version, uint16_t msp_cmd, uint16_t data_size, const uint8_t *payload);
 
 typedef int msp_descriptor_t;
 
@@ -64,6 +64,7 @@ typedef struct mspPort_s {
     msp_descriptor_t descriptor;
     msp_msg_callback callback;
     msp_packet_type_t packet_type;
+    uint8_t owner;
 }msp_port_t;
 
 typedef struct __attribute__((packed)) {

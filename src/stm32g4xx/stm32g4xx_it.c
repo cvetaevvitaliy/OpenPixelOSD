@@ -99,10 +99,10 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32g4xx.s).                    */
 /******************************************************************************/
 
-void DMA1_Channel4_IRQHandler(void)
-{
-
-}
+// void DMA1_Channel4_IRQHandler(void)
+// {
+//
+// }
 
 void USB_LP_IRQHandler(void)
 {

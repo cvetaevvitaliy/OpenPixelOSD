@@ -47,6 +47,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/tim.c
         ./src/comp.c
         ./src/uart.c
+        ./src/usb.c
         ./src/video_gen.c
         ./src/video_overlay.c
         ./src/canvas_char.c
