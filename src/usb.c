@@ -30,7 +30,7 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 
 static void usb_uart_start_transmit(void);
 
-#define OPENPIXELOSD_BANNER "**** OpenPixelOSD© ****\r\nFW:%sv MCU:%s\r\n", FW_VERSION, MCU_TYPE
+#define OPENPIXELOSD_BANNER "**** OpenPixelOSD© ****\r\nFW:%s %s-%s\r\nMCU:%s\r\n", FW_VERSION, GIT_BRANCH, GIT_HASH, MCU_TYPE
 
 static void print_banner(void)
 {

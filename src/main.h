@@ -20,7 +20,19 @@
 #include "stm32g4xx_ll_usart.h"
 #include "stm32g4xx_ll_gpio.h"
 
-#define FW_VERSION "1.0.0"
+#ifndef GIT_TAG
+#define GIT_TAG "-.-.-"
+#endif /* GIT_TAG */
+
+#ifndef GIT_BRANCH
+#define GIT_BRANCH ""
+#endif /* GIT_BRANCH */
+
+#ifndef GIT_HASH
+#define GIT_HASH ""
+#endif /* GIT_HASH */
+
+#define FW_VERSION GIT_TAG
 #ifndef MCU_TYPE
 #define MCU_TYPE "---------"
 #endif /* MCU_TYPE */
