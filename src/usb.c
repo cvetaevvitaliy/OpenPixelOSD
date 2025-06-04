@@ -176,7 +176,11 @@ bool usb_uart_read_byte(uint8_t *byte)
     return true;
 }
 
+#if defined(STM32G431xx)
 void TIM7_IRQHandler(void)
+#elif defined(STM32G474xx)
+void TIM7_DAC_IRQHandler(void)
+#endif
 {
     static volatile uint32_t tim7_ticks = 0;
     static volatile bool usb_connected_prev = false;

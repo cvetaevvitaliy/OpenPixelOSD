@@ -154,8 +154,14 @@ void TIM7_Init(void)
     LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM7);
 
     /* TIM7 interrupt Init */
+#if defined(STM32G431xx)
     NVIC_SetPriority(TIM7_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
     NVIC_EnableIRQ(TIM7_IRQn);
+#elif defined(STM32G474xx)
+    NVIC_SetPriority(TIM7_DAC_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
+    NVIC_EnableIRQ(TIM7_DAC_IRQn);
+#endif
+
 
     TIM_InitStruct.Prescaler = 169;
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;

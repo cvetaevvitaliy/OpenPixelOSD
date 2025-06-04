@@ -11,6 +11,10 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        mcu: [ G431, G474 ]
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -24,22 +28,22 @@ jobs:
         release: '14.2.Rel1' # <-- The compiler release to use
 
     - name : Create build directory
-      run: mkdir -p build
+      run: mkdir -p build-${{ matrix.mcu }}
 
     - name: build
-      working-directory: ./build  
+      working-directory: ./build-${{ matrix.mcu }}
       run: |
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DTARGET_MCU=${{ matrix.mcu }} ..
         make -j4
 
-    - name: Download Artifacts HEX
+    - name: Upload Artifacts HEX
       uses: actions/upload-artifact@v4
       with:
-        name: "Download artifacts - HEX"
-        path: ${{runner.workspace}}/OpenPixelOSD/build/*.hex
+        name: "firmware_${{ matrix.mcu }}_HEX"
+        path: ${{runner.workspace}}/OpenPixelOSD/build-${{ matrix.mcu }}/*.hex
 
-    - name: Download Artifacts BIN
+    - name: Upload Artifacts BIN
       uses: actions/upload-artifact@v4
       with:
-        name: "Download artifacts - BIN"
-        path: ${{runner.workspace}}/OpenPixelOSD/build/*.bin
+        name: "firmware_${{ matrix.mcu }}_BIN"
+        path: ${{runner.workspace}}/OpenPixelOSD/build-${{ matrix.mcu }}/*.bin

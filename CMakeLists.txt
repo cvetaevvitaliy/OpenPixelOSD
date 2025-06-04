@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.22)
 
+set(TARGET_MCU "" CACHE STRING "Target MCU (e.g., G431, G474)")
+# set default to G431 if not specified
+if(NOT TARGET_MCU)
+    set(TARGET_MCU G431)
+endif()
+
+message(STATUS "Selected TARGET_MCU=${TARGET_MCU}")
+
 if(UNIX AND NOT APPLE)
     # Linux
     set(OS_SUPPORTED TRUE)
@@ -81,6 +89,33 @@ message(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
 
 add_executable(${CMAKE_PROJECT_NAME})
 
+
+if(TARGET_MCU STREQUAL "G431")
+    message(STATUS "Building for STM32G431")
+    add_compile_definitions(
+            MCU_TYPE=\"STM32G431\"
+            STM32G431xx
+    )
+    set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/stm32g431cbux_flash.ld)
+    set(STARTUP_ASSEMBLY_FILE ./src/stm32g4xx/startup_stm32g431xx.s)
+elseif(TARGET_MCU STREQUAL "G474")
+    message(STATUS "Building for STM32G474")
+    add_compile_definitions(
+            MCU_TYPE=\"STM32G474\"
+            STM32G474xx
+    )
+    set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/stm32g474ceux_flash.ld)
+    set(STARTUP_ASSEMBLY_FILE ./src/stm32g4xx/startup_stm32g474xx.s)
+else()
+    message(FATAL_ERROR "Unsupported MCU type: ${TARGET_MCU}")
+endif()
+
+add_compile_definitions(
+        USE_FULL_LL_DRIVER
+        USE_HAL_DRIVER
+)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${LINKER_SCRIPT}")
+
 add_subdirectory(cmake/stm32)
 
 # Link directories setup
@@ -89,7 +124,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-        ./src/stm32g4xx/startup_stm32g431xx.s
+        ${STARTUP_ASSEMBLY_FILE}
         ./src/stm32g4xx/stm32g4xx_it.c
         ./src/stm32g4xx/system_stm32g4xx.c
         ./src/stm32g4xx/sysmem.c
@@ -133,8 +168,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 
 # Generate hex and bin files
-set(HEX_FILE ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.hex)
-set(BIN_FILE ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin)
+set(HEX_FILE ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_${TARGET_MCU}.hex)
+set(BIN_FILE ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_${TARGET_MCU}.bin)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${PROJECT_NAME}> ${HEX_FILE}

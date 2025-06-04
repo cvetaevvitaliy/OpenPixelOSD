@@ -5,18 +5,24 @@
 #include "update_font.h"
 #include "main.h"
 #include "stm32g4xx.h"
-
 #include <string.h>
 
-#define FLASH_PAGE_SIZE         0x800U // 2 КБ
+#define FLASH_PAGE_SIZE         0x800U
 #define FLASH_BANK1_BASE        0x08000000U
-#define FLASH_FONT_ADDRESS      0x0801C000U // 0x0801C000 = 0x08000000 + 56 * 0x800
-#define FLASH_FONT_SIZE         0x4000U // 16 КБ
+
+// extern from linker script
+extern uint8_t __font_start;
+extern uint8_t __font_end;
+
+#define FLASH_FONT_ADDRESS      ((uint32_t)&__font_start)
+#define FLASH_FONT_SIZE         ((uint32_t)(&__font_end - &__font_start))
 #define FONT_CHARS_SIZE         64U // 64 bytes per char
 #define FONT_CHARS_COUNT        256U // 256 charters (0x00 - 0xFF)
 
-#define FLASH_FONT_START_PAGE   ((FLASH_FONT_ADDRESS - FLASH_BANK1_BASE) / FLASH_PAGE_SIZE) // 56
-#define FLASH_FONT_NB_PAGES     (FLASH_FONT_SIZE / FLASH_PAGE_SIZE) // 8
+#define FLASH_FONT_START_PAGE   ((FLASH_FONT_ADDRESS - FLASH_BANK1_BASE) / FLASH_PAGE_SIZE)
+#define FLASH_FONT_NB_PAGES     (FLASH_FONT_SIZE / FLASH_PAGE_SIZE)
+
+#define FLASH_BANK_NUMBER(addr) (((addr) < (FLASH_BANK1_BASE + 0x40000U)) ? 1U : 2U)
 
 
 #if 0 // for debug TODO: remove later
@@ -47,9 +53,9 @@ int update_font_erase_all(void)
     if (status != HAL_OK) return UPDATE_FONT_ERR_FLASH_UNLOCK;
 
     eraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
-    eraseInitStruct.Banks = FLASH_BANK_1;
-    eraseInitStruct.Page = FLASH_FONT_START_PAGE; // 56
-    eraseInitStruct.NbPages = FLASH_FONT_NB_PAGES; // 8
+    eraseInitStruct.Banks = FLASH_BANK_NUMBER(FLASH_FONT_ADDRESS);
+    eraseInitStruct.Page = FLASH_FONT_START_PAGE;
+    eraseInitStruct.NbPages = FLASH_FONT_NB_PAGES;
 
     status = HAL_FLASHEx_Erase(&eraseInitStruct, &sectorError);
     if (status != HAL_OK) {
@@ -94,7 +100,7 @@ int update_font_symbol_write(uint8_t char_index, const uint8_t *data_64bytes, si
     FLASH_EraseInitTypeDef eraseInitStruct;
     uint32_t sectorError = 0;
     eraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
-    eraseInitStruct.Banks = FLASH_BANK_1;
+    eraseInitStruct.Banks = FLASH_BANK_NUMBER(FLASH_FONT_ADDRESS);
     eraseInitStruct.Page = (page_start_addr - FLASH_BANK1_BASE) / FLASH_PAGE_SIZE;
     eraseInitStruct.NbPages = 1;
 
