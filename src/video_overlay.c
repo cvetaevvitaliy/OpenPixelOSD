@@ -12,6 +12,7 @@
 #include "fonts/font_bf_default.h"
 #include "logo/logo.h"
 #include "canvas_char.h"
+#include "video_graphics.h"
 
 #define TIM2_TICK_MS        (1e6f / 170000000)
 
@@ -35,13 +36,6 @@
 #define LOGO_OFFSET_X       (120)
 #define LOGO_OFFSET_Y       (25)
 
-typedef enum {
-    PX_BLACK       = 0,
-    PX_TRANSPARENT = 1,
-    PX_WHITE       = 2,
-    PX_GRAY        = 3
-  } px_t;
-
 static uint16_t dac_buff[2][LINE_BUF_SZ];   // DAC double buffer for draw pixel (12-bit CH1)  DMA HALF_WORLD/WORLD
 static uint32_t opamp_buff[2][LINE_BUF_SZ]; // double buffer for OPAMP1 multiplexer (32-bit)  DMA WORLD/WORLD
 CCMRAM_BSS static bool buf_idx = 0; // current buffer index for double buffering
@@ -50,12 +44,20 @@ extern volatile bool video_gen_enabled;
 extern char canvas_char_map[2][ROW_SIZE][COLUMN_SIZE];
 extern uint8_t active_buffer;
 CCMRAM_DATA bool show_logo = true;
+CCMRAM_BSS bool new_field = false;
 
-EXEC_RAM static void init_buffers(bool curr_buff)
+#if defined(HIGH_RAM)
+extern uint8_t active_video_buffer;
+extern uint8_t video_frame_buffer[2][VIDEO_HEIGHT][VIDEO_BYTES_PER_LINE];
+#endif
+
+EXEC_RAM static void init_buffers()
 {
     for (uint32_t j = 0; j < LINE_BUF_SZ; j++) {
-        dac_buff[curr_buff][j] = DAC_GRAY;
-        opamp_buff[curr_buff][j] = video_source;
+        dac_buff[0][j] = DAC_GRAY;
+        opamp_buff[0][j] = video_source;
+        dac_buff[1][j] = DAC_GRAY;
+        opamp_buff[1][j] = video_source;
     }
 }
 
@@ -71,6 +73,13 @@ static void show_version(void)
 
 void video_overlay_init(void)
 {
+    init_buffers();
+    canvas_char_flush_map();
+
+#if defined(HIGH_RAM)
+    video_graphics_init();
+#endif
+
     DAC1_Init(); // DAC1_CH1 for video detection
     DAC3_Init(); // DAC3_CH1 for render line
     OPAMP1_Init(); // OPAMP1 as multiplexer for video source selection
@@ -106,13 +115,10 @@ void video_overlay_init(void)
     LL_TIM_EnableIT_UPDATE(TIM4);
     LL_TIM_EnableCounter(TIM4);
 
-    init_buffers(0);
-    init_buffers(1);
-    canvas_char_flush_map();
-
     show_version();
 }
 
+#if defined(LOW_RAM)
 EXEC_RAM static void squash_canvas_raw_pixel_buff(char c, uint32_t glyph_row, uint32_t x_off)
 {
     register const uint8_t * const glyph = &font_data[(uint8_t)c * FONT_STRIDE];
@@ -140,6 +146,7 @@ EXEC_RAM static void squash_canvas_raw_pixel_buff(char c, uint32_t glyph_row, ui
     }
     opamp_buff[buf_idx][x_off + FONT_WIDTH] = video_source;
 }
+#endif
 
 void render_overlay_logo_line(uint16_t line)
 {
@@ -191,6 +198,7 @@ void render_overlay_logo_line(uint16_t line)
     }
 }
 
+#if defined(LOW_RAM)
 EXEC_RAM static void render_line(uint16_t line)
 {
     CCMRAM_BSS static uint32_t draw_line = 0;
@@ -231,6 +239,55 @@ EXEC_RAM static void render_line(uint16_t line)
 
     opamp_buff[buf_idx][LINE_BUF_SZ-1] = video_source;
 }
+#endif
+
+#if defined(HIGH_RAM)
+EXEC_RAM void render_video_line(uint16_t line)
+{
+    CCMRAM_BSS static uint32_t draw_line = 0;
+
+    for (register int i = 0; i < OFFSET_X; i++) {
+        opamp_buff[buf_idx][i] = video_source;
+    }
+
+    if (line < OFFSET_Y) {
+        for (register int i = OFFSET_X; i < LINE_BUF_SZ; i++) {
+            opamp_buff[buf_idx][i] = video_source;
+        }
+        return;
+    }
+    draw_line = line - OFFSET_Y;
+
+    uint8_t *line_ptr = video_frame_buffer[!active_video_buffer][draw_line];
+
+    uint32_t buf_idx_local = OFFSET_X;
+    for (uint32_t i = 0; i < VIDEO_BYTES_PER_LINE; i++) {
+        uint8_t byte = line_ptr[i];
+        for (int shift = 6; shift >= 0; shift -= 2) {
+            if (buf_idx_local >= LINE_BUF_SZ) break;
+
+            uint8_t pixel = (byte >> shift) & 0x3;
+
+            uint16_t dac_val;
+            uint32_t opa_val;
+
+            switch (pixel) {
+            case PX_BLACK:       dac_val = DAC_BLACK; opa_val = OPAMP_CONST_DAC; break;
+            case PX_WHITE:       dac_val = DAC_WHITE; opa_val = OPAMP_CONST_DAC; break;
+            case PX_GRAY:        dac_val = DAC_GRAY;  opa_val = OPAMP_CONST_DAC; break;
+            case PX_TRANSPARENT:
+            default:             dac_val = DAC_BLACK; opa_val = video_source; break;
+            }
+
+            dac_buff[buf_idx][buf_idx_local] = dac_val;
+            opamp_buff[buf_idx][buf_idx_local] = opa_val;
+
+            buf_idx_local++;
+        }
+    }
+    opamp_buff[buf_idx][LINE_BUF_SZ-1] = video_source;
+}
+#endif
 
 EXEC_RAM static void push_line_to_dma(uint16_t line)
 {
@@ -257,7 +314,11 @@ EXEC_RAM static void push_line_to_dma(uint16_t line)
 
     LL_TIM_EnableCounter(TIM1);
 
-    render_line(line);
+#if defined(HIGH_RAM)
+    render_video_line(line); // video frame buffer
+#else
+    render_line(line); // char canvas map
+#endif
     if (show_logo) {
         render_overlay_logo_line(line);
     }
@@ -274,8 +335,14 @@ EXEC_RAM static inline void pars_video_signal(uint32_t tim_tick)
         if (video_line <= MAX_RENDER_LINE) {
             push_line_to_dma(video_line);
         }
+        if (new_field == false) {
+            new_field = true;
+        }
     } else if (time_ns > 29.0f && time_ns < 33.0f) {
         video_line = 0;
+        if (new_field == true) {
+            new_field = false;
+        }
     } else {
         // Do nothing, wait for next sync
     }

@@ -37,6 +37,13 @@
 #define MCU_TYPE "---------"
 #endif /* MCU_TYPE */
 
+typedef enum {
+  PX_BLACK = 0,
+  PX_TRANSPARENT,
+  PX_WHITE,
+  PX_GRAY
+} px_t;
+
 #define USER_KEY_Pin LL_GPIO_PIN_13
 #define USER_KEY_GPIO_Port GPIOC
 #define COMP3_INP_VIDEO_IN_Pin LL_GPIO_PIN_0
