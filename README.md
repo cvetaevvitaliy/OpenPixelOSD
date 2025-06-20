@@ -3,6 +3,53 @@
 OpenPixelOSD is an open-source project for generating and overlaying pixel graphics onto a video signal (OSD), based on the **STM32G431CBUx** microcontroller.
 The project aims to create a software monochrome On-Screen Display (OSD) for VPV to phase out the obsolete *MAX7456* chip which has been discontinued
 
+
+## Repository Structure
+```pgsql
+.github/workflows/     - CI build for STM32G431/G474
+doc/                   - diagrams and images
+cmake/                 - toolchain & stm32 library CMake scripts
+python/                - helper scripts (font/logo conversion, font upload)
+USB_Device/, Drivers/, Middlewares/ - STM32Cube generated code
+src/                   - firmware source (C code)
+  stm32g4xx/           - device startup, HAL configuration
+  msp/                 - MSP protocol parser/handler
+  fonts/, logo/        - embedded font/logo data and updater
+CMakeLists.txt         - top‑level build file
+```
+
+#### Key Components
+
+`src/main.c` – program entry. Initializes hardware modules, then continually processes **MSP** messages and blinks an **LED**.
+
+`src/video_overlay.c` – core video overlay logic. Sets up **DACs**, timers and comparators to mix the generated OSD pixels with the incoming video signal.
+
+`src/msp/` – implements the **MultiWii Serial Protocol** (MSP) for interacting with flight controllers.
+
+`src/canvas_char.*` – double‑buffered character canvas used for text rendering onto the video overlay.
+
+`python/` – scripts to convert fonts or bitmaps into C arrays for embedding. For example, `convert_logo.py` reads an image, maps colors to 2‑bpp pixels, and outputs a header file. `font_updater.py` sends font data over serial using **MSP** commands.
+
+#### Build and Continuous Integration
+
+The GitHub workflow in `.github/workflows/build.yml` checks out the repo, installs the **Arm GNU toolchain**, builds the firmware for both MCU variants, and uploads the `.hex` and `.bin` artifacts.
+
+#### What to Explore Next
+
+* **Hardware setup** – Review `README.md` and the diagrams in `doc/` to understand signal routing and timing requirements.
+
+* **Build system** – Read `CMakeLists.txt` and `cmake/` scripts to learn how the project is compiled and linked for different microcontrollers.
+
+* **Video overlay internals** – Study `video_overlay.c` and `video_gen.c` to see how DMA and timers generate the analog video waveform.
+
+* **MSP protocol** – Examine `src/msp/` to understand communication with flight controllers.
+
+* **Python utilities** – The scripts in `python/` show how fonts and logos are converted to C data for flashing onto the device.
+
+The project is licensed under GPL‑2.0, as noted in the LICENSE file. With these parts in mind, a newcomer can navigate the firmware, experiment with modifying fonts/logo data, and extend the OSD functionality.
+
+*Important configuration options live in the main `CMakeLists.txt`. The `TARGET_MCU` variable switches between `STM32G431` and `STM32G474` builds.*
+
 ## How It Works
 
 ### Hardware Architecture
