@@ -1,34 +1,34 @@
 # OpenPixelOSD
 
-OpenPixelOSD is an open-source project for generating and overlaying pixel graphics onto a video signal (OSD), based on the **STM32G431CBUx** microcontroller.
+OpenPixelOSD is an open-source project for generating and overlaying pixel graphics onto a video signal (OSD), based on the **STM32G431CBUx/** microcontroller.
 The project aims to create a software monochrome On-Screen Display (OSD) for VPV to phase out the obsolete *MAX7456* chip which has been discontinued
 
 
 ## Repository Structure
 ```pgsql
-.github/workflows/     - CI build for STM32G431/G474
-doc/                   - diagrams and images
-cmake/                 - toolchain & stm32 library CMake scripts
-python/                - helper scripts (font/logo conversion, font upload)
-USB_Device/, Drivers/, Middlewares/ - STM32Cube generated code
-src/                   - firmware source (C code)
-  stm32g4xx/           - device startup, HAL configuration
-  msp/                 - MSP protocol parser/handler
-  fonts/, logo/        - embedded font/logo data and updater
-CMakeLists.txt         - top‑level build file
+.github/workflows/                   - CI build for STM32G431/G474
+doc/                                 - diagrams and images
+cmake/                               - toolchain & stm32 library CMake scripts
+python/                              - helper scripts (font/logo conversion, font upload)
+USB_Device/, Drivers/, Middlewares/  - STM32Cube generated code
+src/                                 - firmware source (C code)
+  stm32g4xx/                         - device startup, HAL configuration
+  msp/                               - MSP protocol parser/handler
+  fonts/, logo/                      - embedded font/logo data and updater
+CMakeLists.txt                       - top‑level build file
 ```
 
 #### Key Components
 
-`src/main.c` – program entry. Initializes hardware modules, then continually processes **MSP** messages and blinks an **LED**.
+- `src/main.c` – program entry. Initializes hardware modules, then continually processes **MSP** messages and blinks an **LED**.
 
-`src/video_overlay.c` – core video overlay logic. Sets up **DACs**, timers and comparators to mix the generated OSD pixels with the incoming video signal.
+- `src/video_overlay.c` – core video overlay logic. Sets up **DACs**, timers and comparators to mix the generated OSD pixels with the incoming video signal.
 
-`src/msp/` – implements the **MultiWii Serial Protocol** (MSP) for interacting with flight controllers.
+- `src/msp/` – implements the **MultiWii Serial Protocol** (MSP) for interacting with flight controllers.
 
-`src/canvas_char.*` – double‑buffered character canvas used for text rendering onto the video overlay.
+- `src/canvas_char.*` – double‑buffered character canvas used for text rendering onto the video overlay.
 
-`python/` – scripts to convert fonts or bitmaps into C arrays for embedding. For example, `convert_logo.py` reads an image, maps colors to 2‑bpp pixels, and outputs a header file. `font_updater.py` sends font data over serial using **MSP** commands.
+- `python/` – scripts to convert fonts or bitmaps into C arrays for embedding. For example, `convert_logo.py` reads an image, maps colors to 2‑bpp pixels, and outputs a header file. `font_updater.py` sends font data over serial using **MSP** commands.
 
 #### Build and Continuous Integration
 
@@ -54,7 +54,7 @@ The project is licensed under GPL‑2.0, as noted in the LICENSE file. With thes
 
 ### Hardware Architecture
 
-- The **STM32G431CBUx microcontroller** handles control and pixel data generation.
+- The **STM32G431CBUx/G474 microcontroller** handles control and pixel data generation.
 - The input video signal is fed into the **OPAMP1 multiplexer input - PA7**, operating in **follower mode**, and to the comparator positive input `vin+` **COMP3 - PA0** for synchronization.
 - **DAC1 Channel 1** is used as the negative reference `vref-` for the comparator.
 - If no input video signal is present, **TIM17** generates a PWM signal on pin **PB5** to create the video signal.
@@ -117,7 +117,7 @@ OpenPixelOSD — це open-source проєкт для генерації та н
 
 ### Архітектура апаратної частини
 
-- **Мікроконтролер STM32G431CBUx** відповідає за керування і генерацію піксельних даних.
+- **Мікроконтролер STM32G431CBUx/G474** відповідає за керування і генерацію піксельних даних.
 - Вхідний відеосигнал подається на **вхід мультиплексора OPAMP1 - PA7** який працює в **follower** режимі та на вхід компаратора `vin+` **COMP3 - PA0** для синхронізації.
 - В якості `vref-` для компаратора, використовується **DAC1 CH1**.
 - Щоб не ускладнювати логіку детекції відео сигналу та формування власного відео сигналу - **TIM17** формує **еталонний відеосигнал** шляхом генерації **PWM** на піні **PB5** з підтримкою **черезрядкової** або **прогресивної** розгортки.
