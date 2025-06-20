@@ -68,10 +68,10 @@ EXEC_RAM static void msp_callback(uint8_t owner, msp_version_t msp_version, uint
                     uint8_t data[2] = {COLUMN_SIZE, ROW_SIZE};
                     uint16_t len = construct_msp_command_v1(msp_tx_buff, MSP_SET_OSD_CANVAS, data, 2, MSP_OUTBOUND);
                     if (owner == MSP_OWNER_USB) {
-                        printf((char*)&msp_tx_buff);
+                        usb_uart_write_bytes((const char *)msp_tx_buff, len);
                     } else if (owner == MSP_OWNER_UART) {
                         uart1_tx_dma(msp_tx_buff, len);
-                    } else { return; } // doo nothing
+                    } else { return; } // do nothing
                 }
             }
                 break;
