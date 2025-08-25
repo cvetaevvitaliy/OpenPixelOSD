@@ -7,7 +7,7 @@
 
 CCMRAM_BSS static uint32_t dma_old_pos = 0;
 
-#define UART_RX_RING_BUF_SIZE 512
+#define UART_RX_RING_BUF_SIZE 1024
 #define UART_RX_DMA_BUF_SIZE (2)
 static uint8_t uart_rx_buf[UART_RX_DMA_BUF_SIZE];
 static uint8_t uart_rx_ring_buff[UART_RX_RING_BUF_SIZE];
@@ -152,7 +152,7 @@ void uart1_tx_dma(uint8_t *data, uint32_t len)
     LL_DMA_EnableChannel(DMA2, LL_DMA_CHANNEL_2);
 }
 
-void DMA2_Channel1_IRQHandler(void)
+EXEC_RAM void DMA2_Channel1_IRQHandler(void)
 {
     if (LL_DMA_IsActiveFlag_HT1(DMA2)) {
         LL_DMA_ClearFlag_HT1(DMA2);
@@ -173,7 +173,7 @@ void DMA2_Channel1_IRQHandler(void)
     }
 }
 
-void DMA2_Channel2_IRQHandler(void)
+EXEC_RAM void DMA2_Channel2_IRQHandler(void)
 {
     if (LL_DMA_IsActiveFlag_TC2(DMA2))
     {
@@ -185,7 +185,7 @@ void DMA2_Channel2_IRQHandler(void)
     }
 }
 
-static void uart_rx_ring_put(uint8_t data)
+EXEC_RAM static void uart_rx_ring_put(uint8_t data)
 {
     uint16_t next = (uart_rx_head + 1) % UART_RX_RING_BUF_SIZE;
     if (next != uart_rx_tail) {
@@ -194,7 +194,7 @@ static void uart_rx_ring_put(uint8_t data)
     }
 }
 
-bool uart_rx_ring_get(uint8_t *data)
+EXEC_RAM bool uart_rx_ring_get(uint8_t *data)
 {
     if (uart_rx_head == uart_rx_tail) return false;
 

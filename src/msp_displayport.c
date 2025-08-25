@@ -123,7 +123,7 @@ EXEC_RAM static void msp_callback(uint8_t owner, msp_version_t msp_version, uint
 
 }
 
-void msp_loop_process(void)
+EXEC_RAM void msp_loop_process(void)
 {
     uint8_t byte;
     while (uart_rx_ring_get(&byte)) {

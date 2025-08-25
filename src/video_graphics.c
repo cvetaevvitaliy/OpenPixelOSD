@@ -68,7 +68,7 @@ static inline void vg_put_px2(uint16_t x, uint16_t y, uint8_t v2)
     line[byte] = (uint8_t)((line[byte] & ~mask) | ((v2 & 0x3u) << shift));
 }
 
-void video_render_canvas_from_map(void)
+EXEC_RAM void video_render_canvas_from_map(void)
 {
     /* Clear video frame buffer before rendering */
     video_graphics_clear_draw_buff(PX_TRANSPARENT);
@@ -117,7 +117,7 @@ void video_render_canvas_from_map(void)
     video_graphics_draw_complete();
 }
 
-void video_graphics_draw_complete(void)
+EXEC_RAM void video_graphics_draw_complete(void)
 {
     active_video_buffer ^= 1;
     video_graphics_clear_draw_buff(PX_TRANSPARENT);
