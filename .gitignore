@@ -45,6 +45,7 @@ venv/
 # Other
 *.swp
 
+.cache
 .idea/
 /build/
 /cmake-build-*/

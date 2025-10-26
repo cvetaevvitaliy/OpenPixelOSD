@@ -21,8 +21,10 @@ extern bool new_field;
 
 #define LED_BLINK_INTERVAL 100 // milliseconds
 #define DEBUG_LOOP_INTERVAL 100 // milliseconds
+#define LOGO_TIMEOUT_MS 8000 // 8 seconds
 
 void led_blink(void);
+void logo_timeout_check(void);
 
 void debug_print_loop(void)
 {
@@ -67,6 +69,7 @@ int main (void)
         msp_loop_process();
         led_blink();
         debug_print_loop();
+        logo_timeout_check();
 
 #if 0 // TODO: remove later
 // For test only - 3D cube animation
@@ -87,6 +90,24 @@ void led_blink(void)
     if ((HAL_GetTick() - last_tick) >= LED_BLINK_INTERVAL) {
         LED_STATE_GPIO_Port->ODR ^= LED_STATE_Pin;
         last_tick = HAL_GetTick();
+    }
+}
+
+void logo_timeout_check(void)
+{
+    static uint32_t boot_time = 0;
+    static bool timeout_checked = false;
+    extern bool show_logo;
+    
+    // Initialize boot time on first call
+    if (boot_time == 0) {
+        boot_time = HAL_GetTick();
+    }
+    
+    // Check if 8 seconds have passed and we haven't already timed out
+    if (!timeout_checked && (HAL_GetTick() - boot_time) >= LOGO_TIMEOUT_MS) {
+        show_logo = false;
+        timeout_checked = true;
     }
 }
 
