@@ -8,6 +8,7 @@
 #include "usb.h"
 #include "video_gen.h"
 #include "video_overlay.h"
+
 #if defined(BUILD_VARIANT_VTX)
 #include "rtc6705.h"
 #include <rf_pa.h>
@@ -98,16 +99,18 @@ void logo_timeout_check(void)
     static uint32_t boot_time = 0;
     static bool timeout_checked = false;
     extern bool show_logo;
-    
+
     // Initialize boot time on first call
     if (boot_time == 0) {
         boot_time = HAL_GetTick();
     }
-    
-    // Check if 8 seconds have passed and we haven't already timed out
+
+    // Check if LOGO_TIMEOUT_MS has elapsed, clear logo and version string if so
     if (!timeout_checked && (HAL_GetTick() - boot_time) >= LOGO_TIMEOUT_MS) {
         show_logo = false;
+        // Clear the canvas to remove version string
+        canvas_char_clean();
+        canvas_char_draw_complete();
         timeout_checked = true;
     }
 }
-

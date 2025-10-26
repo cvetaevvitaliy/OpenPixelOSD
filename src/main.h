@@ -121,4 +121,8 @@ void TIM17_Init(void);
 void COMP3_Init(void);
 void COMP4_Init(void);
 
+/* Canvas character functions */
+EXEC_RAM void canvas_char_clean(void);
+EXEC_RAM void canvas_char_draw_complete(void);
+
 #endif /* __MAIN_H */
