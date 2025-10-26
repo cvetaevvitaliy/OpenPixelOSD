@@ -22,7 +22,7 @@ extern bool new_field;
 
 #define LED_BLINK_INTERVAL 100 // milliseconds
 #define DEBUG_LOOP_INTERVAL 100 // milliseconds
-#define LOGO_TIMEOUT_MS 8000 // 8 seconds
+#define LOGO_TIMEOUT_MS 4000 // 4 seconds
 
 void led_blink(void);
 void logo_timeout_check(void);
