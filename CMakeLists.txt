@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 # ===== Build variant selection =====
-#   OpenPixelOSD      -> base OSD (no VTX drivers)
-#   OpenPixelOSD_VTX  -> OSD + VTX (RTC6705 / PA / MSP VTX)
+#   OpenPixelOSD             -> base OSD (no VTX drivers, with external oscillator)
+#   OpenPixelOSD_VTX         -> OSD + VTX (RTC6705 / PA / MSP VTX)
+#   OpenPixelOSD_VTX_NO_OSC  -> OSD + VTX (RTC6705 / PA / MSP VTX, no external oscillator)
 set(BUILD_VARIANT "" CACHE STRING "Build variant: VTX")
 
 set(TARGET_MCU "" CACHE STRING "Target MCU (e.g., STM32G431, STM32G474)")
@@ -117,9 +118,14 @@ else()
     message(FATAL_ERROR "Unsupported MCU type: ${TARGET_MCU}")
 endif()
 
-if(BUILD_VARIANT STREQUAL "VTX")
+#The pattern (^|\\+)${FEATURE_NAME}($|\\+) means:
+#(^|\\+) - Match either start of string (^) OR a plus sign (\\+)
+#${FEATURE_NAME} - Match the feature name exactly
+#($|\\+) - Match either end of string ($) OR a plus sign (\\+)
+
+if(BUILD_VARIANT MATCHES "(^|\\+)VTX($|\\+)")
     message(STATUS "Building with VTX support")
-    set(BUILD_NAME "_VTX")
+    set(BUILD_NAME "${BUILD_NAME}_VTX")
     add_compile_definitions(BUILD_VARIANT_VTX)
     set(VTX_SRC
             ./src/rtc6705.c
@@ -127,10 +133,16 @@ if(BUILD_VARIANT STREQUAL "VTX")
             ./src/vtx_msp.c)
 endif()
 
-if(BUILD_VARIANT STREQUAL "BLINKY")
-    message(STATUS "Building test BLINKY variant")
-    set(BUILD_NAME "_BLINKY")
+if(BUILD_VARIANT MATCHES "(^|\\+)BLINKY($|\\+)")
+    message(STATUS "Building 'blinky' variant")
+    set(BUILD_NAME "${BUILD_NAME}_BLINKY")
     add_compile_definitions(BUILD_VARIANT_BLINKY)
+endif()
+
+if(BUILD_VARIANT MATCHES "(^|\\+)NO_OSC($|\\+)")
+    message(STATUS "Building with no external oscillator support")
+    set(BUILD_NAME "${BUILD_NAME}_NO_OSC")
+    add_compile_definitions(BUILD_VARIANT_NO_OSC)
 endif()
 
 add_compile_definitions(
