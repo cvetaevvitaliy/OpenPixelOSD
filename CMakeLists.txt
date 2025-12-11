@@ -127,6 +127,12 @@ if(BUILD_VARIANT STREQUAL "VTX")
             ./src/vtx_msp.c)
 endif()
 
+if(BUILD_VARIANT STREQUAL "BLINKY")
+    message(STATUS "Building test BLINKY variant")
+    set(BUILD_NAME "_BLINKY")
+    add_compile_definitions(BUILD_VARIANT_BLINKY)
+endif()
+
 add_compile_definitions(
         USE_FULL_LL_DRIVER
         USE_HAL_DRIVER
