@@ -189,14 +189,31 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 
 # Generate hex and bin files
-set(HEX_FILE ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_${TARGET_MCU}${BUILD_NAME}.hex)
-set(BIN_FILE ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_${TARGET_MCU}${BUILD_NAME}.bin)
+set(HEX_FILE ${CMAKE_PROJECT_NAME}_${TARGET_MCU}${BUILD_NAME}.hex)
+set(BIN_FILE ${CMAKE_PROJECT_NAME}_${TARGET_MCU}${BUILD_NAME}.bin)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${PROJECT_NAME}> ${HEX_FILE}
-        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${PROJECT_NAME}> ${BIN_FILE}
+        COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${PROJECT_NAME}> ${PROJECT_BINARY_DIR}/${HEX_FILE}
+        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${PROJECT_NAME}> ${PROJECT_BINARY_DIR}/${BIN_FILE}
         COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${PROJECT_NAME}>)
+
+# make a zip file containing the hex, bin, map and elf
+set(ZIP_NAME "${CMAKE_PROJECT_NAME}_${TARGET_MCU}_${CMAKE_BUILD_TYPE}${BUILD_NAME}")
+set(TARGET_LANGUAGES "C;ASM")
+set(MAP_FILE "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME};LANGUAGES;${TARGET_LANGUAGES}.map")
+
+# Create ZIP after build completes
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Creating ${ZIP_NAME}.zip"
+        COMMAND ${CMAKE_COMMAND} -E tar "cf" "${ZIP_NAME}.zip" --format=zip
+        "${HEX_FILE}"
+        "${BIN_FILE}"
+        "${MAP_FILE}"
+        "$<TARGET_FILE:${PROJECT_NAME}>"
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+        COMMENT "Creating ZIP archive: ${ZIP_NAME}.zip"
+)
 
 # Flash the device using dfu-util
 add_custom_target(flash
-        COMMAND dfu-util -a 0 -s 0x08000000:leave -D ${BIN_FILE} -R )
+        COMMAND dfu-util -a 0 -s 0x08000000:leave -D ${PROJECT_BINARY_DIR}/${BIN_FILE} -R )
