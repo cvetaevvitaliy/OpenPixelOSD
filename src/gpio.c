@@ -18,7 +18,8 @@ void gpio_init(void)
     LL_GPIO_ResetOutputPin(SPI2_CS_GPIO_Port, SPI2_CS_Pin);
 
     /**/
-    LL_GPIO_ResetOutputPin(LED_STATE_GPIO_Port, LED_STATE_Pin);
+    // LED on by default, so that correct flashing and the boot process can be observed.
+    LL_GPIO_SetOutputPin(LED_STATE_GPIO_Port, LED_STATE_Pin);
 
     /**/
     GPIO_InitStruct.Pin = USER_KEY_Pin;
