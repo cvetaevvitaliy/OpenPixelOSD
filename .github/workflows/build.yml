@@ -17,15 +17,27 @@ jobs:
             variant_flag: ""
             job_name: STM32G431
           - mcu: STM32G431
+            variant_flag: "-DBUILD_VARIANT=NO_OSC"
+            job_name: STM32G431_NO_OSC
+          - mcu: STM32G431
             variant_flag: "-DBUILD_VARIANT=VTX"
             job_name: STM32G431_VTX
+          - mcu: STM32G431
+            variant_flag: "-DBUILD_VARIANT=VTX+NO_OSC"
+            job_name: STM32G431_VTX_NO_OSC
 
           - mcu: STM32G474
             variant_flag: ""
             job_name: STM32G474
           - mcu: STM32G474
+            variant_flag: "-DBUILD_VARIANT=NO_OSC"
+            job_name: STM32G474_NO_OSC
+          - mcu: STM32G474
             variant_flag: "-DBUILD_VARIANT=VTX"
             job_name: STM32G474_VTX
+          - mcu: STM32G474
+            variant_flag: "-DBUILD_VARIANT=VTX+NO_OSC"
+            job_name: STM32G474_VTX_NO_OSC
 
     steps:
     - name: Checkout
