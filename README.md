@@ -117,7 +117,7 @@ RTC6705 support
 
 External PA control
 - DAC1 OUT2 (PA5) → TLV9001 buffer → VREF of SE5004L
-- ADC1 (PB14 / IN14) reads detector voltage (VDET)
+- ADC1 (PB11 / IN14) reads detector voltage (VDET)
 - Additional ADC ranks: MCU temperature sensor & VREFINT for accurate scaling
 - rf_pa_set_vref_mv() / rf_pa_get_vref_mv()
 - rf_pa_read_vdet_mv() and rf_pa_estimate_pout_dbm() for telemetry
@@ -199,7 +199,7 @@ RTC6705
 
 Керування зовнішнім PA
 - DAC1 OUT2 (PA5) → TLV9001 → VREF підсилювача SE5004L
-- ADC1 (PB14 / IN14) вимірює вихід детектора (VDET)
+- ADC1 (PB11 / IN14) вимірює вихід детектора (VDET)
 - Додаткові ранги: сенсор температури MCU та VREFINT для точного масштабування
 - rf_pa_set_vref_mv() / rf_pa_get_vref_mv()
 - rf_pa_read_vdet_mv() та rf_pa_estimate_pout_dbm() — для телеметрії
