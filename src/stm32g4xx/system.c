@@ -72,4 +72,7 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
+#if defined(BUILD_VARIANT_MCO)
+    LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_SYSCLK, LL_RCC_MCO1_DIV_16);
+#endif
 }

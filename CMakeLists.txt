@@ -145,6 +145,12 @@ if(BUILD_VARIANT MATCHES "(^|\\+)NO_OSC($|\\+)")
     add_compile_definitions(BUILD_VARIANT_NO_OSC)
 endif()
 
+if(BUILD_VARIANT MATCHES "(^|\\+)MCO($|\\+)")
+    message(STATUS "Building with MCO verification support (PA8 should have a 10.625 clock signal on it)")
+    set(BUILD_NAME "${BUILD_NAME}_MCO")
+    add_compile_definitions(BUILD_VARIANT_MCO)
+endif()
+
 add_compile_definitions(
         USE_FULL_LL_DRIVER
         USE_HAL_DRIVER
