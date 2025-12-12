@@ -27,10 +27,7 @@ void adc_init(void)
     LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_ADC12);
 
     LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
-    /**ADC1 GPIO Configuration
-        PB11   ------> ADC1_IN14
-        PB12   ------> ADC1_IN11
-    */
+
     GPIO_InitStruct.Pin = ADC_RESERVED_Pin;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
