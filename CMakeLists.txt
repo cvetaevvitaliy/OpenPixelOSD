@@ -11,7 +11,24 @@ if(NOT TARGET_MCU)
     set(TARGET_MCU STM32G431)
 endif()
 
-message(STATUS "Selected TARGET_MCU=${TARGET_MCU} BUILD_VARIANT=${BUILD_VARIANT}")
+if(NOT TARGET_BOARD)
+    set(TARGET_BOARD "GENERIC")
+endif()
+
+# ===== Board target selection =====
+# Selects which src/targets/*.h pin/resource header is active (see
+# src/targets/target.h). "generic" = baseline board (no external PA
+# stage). Add new boards under src/targets/ and a matching branch here.
+set(TARGET_BOARD "GENERIC" CACHE STRING "Board target: GENERIC, GENERIC_VTX_PA_RTC76401")
+
+if(TARGET_BOARD STREQUAL "GENERIC_VTX_PA_RTC76401")
+    message(STATUS "Building for board target: GENERIC_VTX_PA_RTC76401 (RTC76401 external PA)")
+    add_compile_definitions(TARGET_BOARD_VTX_PA_RTC76401)
+elseif(NOT TARGET_BOARD STREQUAL "GENERIC")
+    message(FATAL_ERROR "Unknown TARGET_BOARD: ${TARGET_BOARD}")
+endif()
+
+message(STATUS "Selected TARGET_MCU=${TARGET_MCU} BUILD_VARIANT=${BUILD_VARIANT} TARGET_BOARD=${TARGET_BOARD}")
 
 if(UNIX AND NOT APPLE)
     # Linux

@@ -86,6 +86,10 @@ int main (void)
         debug_print_loop();
         logo_timeout_check();
 
+#if defined(BUILD_VARIANT_VTX)
+        rf_pa_loop();
+#endif
+
 #if 0 // TODO: remove later
 // For test only - 3D cube animation
 #if defined(HIGH_RAM)
