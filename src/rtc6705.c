@@ -109,7 +109,10 @@ __attribute__((weak)) void rtc6705_hook_ext_pa_enable(bool on)
 }
 __attribute__((weak)) void rtc6705_hook_delay_us(uint32_t us)
 {
-    HAL_Delay(us);
+    uint32_t wait_loop_index = (us * (SystemCoreClock / (1000000u * 2u)));
+    while (wait_loop_index != 0) {
+        wait_loop_index--;
+    }
 }
 
 static inline void bb_delay(void)
