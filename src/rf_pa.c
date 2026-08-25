@@ -431,6 +431,25 @@ float rf_pa_read_ntc_temp_c(void)
 {
     return rf_pa_ntc_raw_to_celsius(ADC_NTC_READ_RAW());
 }
+
+uint16_t rf_pa_read_ntc_raw(void)
+{
+    return ADC_NTC_READ_RAW();
+}
+#else
+/* No NTC on this board -- these two always report 0, so a caller (e.g.
+ * vtx_msp.c's status reply) never needs its own #if ADC_NTC_INSTANCE
+ * check; it just always calls these two functions and gets 0 back when
+ * there's genuinely nothing to report. */
+float rf_pa_read_ntc_temp_c(void)
+{
+    return 0.0f;
+}
+
+uint16_t rf_pa_read_ntc_raw(void)
+{
+    return 0;
+}
 #endif // ADC_NTC_INSTANCE
 
 void debug_pa_loop(float p, float i, float d, float error, uint16_t vdet_mv, uint16_t vbias_mv)

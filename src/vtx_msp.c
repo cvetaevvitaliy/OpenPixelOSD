@@ -430,11 +430,20 @@ void vtx_msp_set_calibration_table(uint8_t owner, const uint8_t *payload, uint16
  *       stays a single atomic read
  *   [10] session_active (0/1) -- rf_pa_calibration_session_is_active(),
  *       see rf_pa_calibration_session_begin()'s doc comment in rf_pa.h
+ *   [11-12] ntc_raw (12-bit ADC code, LSB/MSB) -- rf_pa_read_ntc_raw().
+ *       0 on a board with no NTC (see that function's own fallback in
+ *       rf_pa.c) -- not a real reading in that case, not distinguishable
+ *       from a genuine 0 code, but that's the same "0 means nothing to
+ *       report" convention the rest of this reply already uses elsewhere.
+ *   [13-14] pa_temp_c_x10 (signed, tenths of a degree C, LSB/MSB) --
+ *       rf_pa_read_ntc_temp_c() * 10. Also 0 on a board with no NTC.
  */
 void vtx_msp_push_calibration(uint8_t owner)
 {
-    uint8_t p[11] = {0};
+    uint8_t p[15] = {0};
     uint16_t detector_mv = (uint16_t)rf_pa_get_detector_mv();
+    uint16_t ntc_raw = rf_pa_read_ntc_raw();
+    int16_t pa_temp_c_x10 = (int16_t)(rf_pa_read_ntc_temp_c() * 10.0f);
 
     p[0] = g_cfg.power;
     p[1] = (uint8_t)(rf_pa_get_vref_mv() & 0xFF);
@@ -447,6 +456,10 @@ void vtx_msp_push_calibration(uint8_t owner)
     p[8] = (uint8_t)(g_cfg.frequency & 0xFF);
     p[9] = (uint8_t)((g_cfg.frequency >> 8) & 0xFF);
     p[10] = rf_pa_calibration_session_is_active() ? 1 : 0;
+    p[11] = (uint8_t)(ntc_raw & 0xFF);
+    p[12] = (uint8_t)((ntc_raw >> 8) & 0xFF);
+    p[13] = (uint8_t)((uint16_t)pa_temp_c_x10 & 0xFF);
+    p[14] = (uint8_t)(((uint16_t)pa_temp_c_x10 >> 8) & 0xFF);
 
     uint8_t tx_buff[32];
     const uint16_t len = construct_msp_command_v2(tx_buff,

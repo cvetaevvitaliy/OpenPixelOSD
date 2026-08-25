@@ -20,8 +20,10 @@ uint16_t rf_pa_read_vdet_mv(void);
 uint16_t rf_pa_get_vref_mv(void);
 void rf_pa_set_vref_mv(uint16_t mv);
 
-#if defined(ADC_NTC_INSTANCE)
 float rf_pa_read_ntc_temp_c(void);
+uint16_t rf_pa_read_ntc_raw(void);
+#if defined(ADC_NTC_INSTANCE)
+
 float rf_pa_ntc_raw_to_celsius(uint16_t adc_raw);
 #endif
 
