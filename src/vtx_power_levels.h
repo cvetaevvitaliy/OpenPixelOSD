@@ -48,6 +48,15 @@ typedef struct {
 #if defined(USE_PA)
 extern vtx_power_level_t g_vtx_power_levels[]; // RAM, mutable, sized VTX_POWER_LEVEL_MAX+1 -- see vtx_power_levels.c
 void vtx_power_levels_init(void);              // copies target defaults in, then overlays EEPROM data. Call once at boot, after flash_init().
+/* Provided by the active target's *_power.c -- e.g.
+ * targets/generic_vtx_pa_rtc76401_power.c. Sign-correct, target-specific
+ * "safe/uncalibrated" values -- NOT a generic zero, which would be
+ * actively dangerous on an inverted-PA_DAC_SIGN board (low DAC = high
+ * output there). This is what "reset to defaults" (see
+ * vtx_msp_set_calibration_table()'s 1-byte reset payload) copies from,
+ * specifically so that operation can never depend on a value the tool
+ * itself made up. */
+extern const vtx_power_level_t g_vtx_power_level_defaults[];
 #else
 extern const vtx_power_level_t g_vtx_power_levels[]; // no PA -> nothing to calibrate, stays target-fixed
 #endif

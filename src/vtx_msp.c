@@ -385,12 +385,50 @@ void vtx_msp_push_calibration_table(uint8_t owner)
     }
 }
 
+/* Two payload shapes:
+ *   data_size == 1, payload[0] == 0xFF: reset ALL levels back to this
+ *     target's own compiled-in defaults (g_vtx_power_level_defaults[],
+ *     from this board's *_power.c) -- NOT a hardcoded/zeroed value,
+ *     since what counts as "safe/uncalibrated" depends on PA_DAC_SIGN
+ *     and varies by target (a naive 0 would be actively dangerous on an
+ *     inverted-sign board, where low DAC = high output). No level is
+ *     specified in this 1-byte form -- it always resets every level in
+ *     one call, matching a whole-table "erase calibration" action.
+ *     Persists immediately via rf_pa_write_eeprom(), same as the normal
+ *     per-level write path below (a no-op for a level that isn't
+ *     ext_pa_enable, same as it's always been).
+ *   data_size >= 17: normal per-level write (payload[0] = level,
+ *     followed by 7 calibration + 7 detector mV values) -- unchanged
+ *     from before.
+ * Anything else (a 1-byte payload that isn't the 0xFF sentinel, or a
+ * length in between) is malformed and ignored, same as before this
+ * reset path existed. */
 void vtx_msp_set_calibration_table(uint8_t owner, const uint8_t *payload, uint16_t data_size)
 {
-    if (!payload || data_size < 17) {
+    (void)owner;
+    if (!payload) {
         return; // malformed
     }
-    (void)owner;
+
+    if (data_size == 1) {
+        if (payload[0] == 0xFF) {
+            for (uint8_t level = 1; level <= g_vtx_power_level_count; level++) {
+                memcpy(g_vtx_power_levels[level].calibration,
+                       g_vtx_power_level_defaults[level].calibration,
+                       sizeof(g_vtx_power_levels[level].calibration));
+                memcpy(g_vtx_power_levels[level].detector,
+                       g_vtx_power_level_defaults[level].detector,
+                       sizeof(g_vtx_power_levels[level].detector));
+                rf_pa_write_eeprom(level); // no-op if this level isn't ext_pa_enable -- see vtx_power_levels.c
+            }
+            TRACE_INFO("PA table reset to defaults\n");
+        }
+        return;
+    }
+
+    if (data_size < 17) {
+        return; // malformed
+    }
 
     const uint16_t level = payload[0];
 

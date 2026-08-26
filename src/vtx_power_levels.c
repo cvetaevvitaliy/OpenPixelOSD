@@ -31,10 +31,6 @@
 
 #define EEPROM_BLOCKS_PER_LEVEL 4
 
-/* Provided by the active target's *_power.c -- e.g.
- * targets/generic_vtx_pa_rtc76401_power.c. */
-extern const vtx_power_level_t g_vtx_power_level_defaults[];
-
 vtx_power_level_t g_vtx_power_levels[VTX_POWER_LEVEL_MAX + 1];
 
 static uint8_t calibration_slot_for_level(uint8_t level)
