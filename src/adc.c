@@ -385,15 +385,42 @@ uint32_t adc_read_vdda_mv(void)
     return (uint32_t)3000u * (uint32_t)vref_cal / (uint32_t)vref_raw;
 }
 
+#define __LL_ADC_CALC_TEMPERATURE_DECIDEGREES(__VREFANALOG_VOLTAGE__,\
+                                              __TEMPSENSOR_ADC_DATA__,\
+                                              __ADC_RESOLUTION__)\
+((((int32_t)*TEMPSENSOR_CAL2_ADDR - (int32_t)*TEMPSENSOR_CAL1_ADDR) != 0) ?       \
+ (((( ((int32_t)((__LL_ADC_CONVERT_DATA_RESOLUTION((__TEMPSENSOR_ADC_DATA__),     \
+                                                   (__ADC_RESOLUTION__),          \
+                                                   LL_ADC_RESOLUTION_12B)         \
+                  * (__VREFANALOG_VOLTAGE__))                                     \
+                 / TEMPSENSOR_CAL_VREFANALOG)                                     \
+       - (int32_t) *TEMPSENSOR_CAL1_ADDR)                                         \
+    ) * (int32_t)(TEMPSENSOR_CAL2_TEMP - TEMPSENSOR_CAL1_TEMP) * 10               \
+   ) / (int32_t)((int32_t)*TEMPSENSOR_CAL2_ADDR - (int32_t)*TEMPSENSOR_CAL1_ADDR) \
+  ) + (TEMPSENSOR_CAL1_TEMP * 10)                                                 \
+ )                                                                                \
+ :                                                                                \
+ ((int32_t)LL_ADC_TEMPERATURE_CALC_ERROR)                                         \
+)
+
+/* __LL_ADC_CALC_TEMPERATURE (used previously here) returns whole-degree
+ * Celsius only.
+ *
+ * This replicates the same linear-interpolation formula between the two factory
+ * calibration points (TEMPSENSOR_CAL1_ADDR/CAL2_ADDR, at
+ * TEMPSENSOR_CAL1_TEMP/CAL2_TEMP) that the macro itself uses internally,
+ * but carries one extra digit of precision through the division instead
+ * of losing it, so the result is in tenths of a degree C (deci-degrees)
+ */
 float adc_read_mcu_temp_c(void)
 {
     const uint16_t ts_raw = adc1_read_raw(ADC1_CH_TEMP);
 #if USE_VREF_IN_CHANNEL
     const uint32_t vdda_mv = adc_read_vdda_mv();
-    const int32_t t = __LL_ADC_CALC_TEMPERATURE(vdda_mv, ts_raw, LL_ADC_RESOLUTION_12B);
 #else
-    const int32_t t = __LL_ADC_CALC_TEMPERATURE(ADC_VDDA_ASSUMED_mV, ts_raw, LL_ADC_RESOLUTION_12B);
+    const uint32_t vdda_mv = ADC_VDDA_ASSUMED_mV;
 #endif
+    const int32_t t_x10 = __LL_ADC_CALC_TEMPERATURE_DECIDEGREES(vdda_mv, ts_raw, LL_ADC_RESOLUTION_12B);
 
-    return (float)t;
+    return (float)t_x10 / 10.0f;
 }
