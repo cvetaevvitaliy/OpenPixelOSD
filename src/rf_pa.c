@@ -455,6 +455,7 @@ uint16_t rf_pa_read_ntc_raw(void)
 }
 #endif // ADC_NTC_INSTANCE
 
+#if defined(BUILD_VARIANT_PA_DEBUG)
 void debug_pa_loop(float p, float i, float d, float error, uint16_t vdet_mv, uint16_t vbias_mv)
 {
     canvas_char_clean();
@@ -502,6 +503,7 @@ void debug_pa_loop(float p, float i, float d, float error, uint16_t vdet_mv, uin
 
     canvas_char_draw_complete();
 }
+#endif // BUILD_VARIANT_PA_DEBUG
 
 /**
  * @brief Call periodically (e.g. every main-loop iteration). Runs the DAC
@@ -539,10 +541,14 @@ void rf_pa_loop(bool field_edge_flag)
     static uint32_t last_detector_loop = 0;
     static uint32_t last_control_loop = 0;
 
+#if defined(BUILD_VARIANT_PA_DEBUG)
     static bool debug_update_requested = false;
     if (field_edge_flag) {
         debug_update_requested = true;
     }
+#else
+    (void)field_edge_flag; // only consumed by the PA_DEBUG overlay trigger
+#endif
 
     if ((HAL_GetTick() - last_detector_loop) >= 1) {
         rf_detector = rf_detector * 0.99 + rf_pa_read_vdet_mv() * 0.01;
@@ -572,11 +578,13 @@ void rf_pa_loop(bool field_edge_flag)
         last_control_loop = HAL_GetTick();
         pa_control_last_deviation = error;
 
+#if defined(BUILD_VARIANT_PA_DEBUG)
         if (debug_update_requested) {
             debug_update_requested = false;
 
             debug_pa_loop(p, pa_control_i, d, error, rf_pa_read_vdet_mv(), mv);
         }
+#endif
     }
 }
 

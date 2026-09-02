@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 3.22)
 # ===== Build variant selection =====
 # Orthogonal build options, combine with '+' (e.g. BLINKY+NO_OSC):
-#   NO_OSC  -> no external oscillator
-#   BLINKY  -> minimal "blinky" bring-up build
-#   MCO     -> route the master clock to a pin for verification
+#   NO_OSC   -> no external oscillator
+#   BLINKY   -> minimal "blinky" bring-up build
+#   MCO      -> route the master clock to a pin for verification
+#   PA_DEBUG -> compile in the PA closed-loop OSD debug overlay
+#               (debug_pa_loop() + its field-edge trigger); off by default
 # VTX/PA is NOT a build variant -- it is a property of the selected
 # TARGET_BOARD, declared in that board's target.cmake (see below).
-set(BUILD_VARIANT "" CACHE STRING "Build variant: NO_OSC, BLINKY, MCO (combine with +)")
+set(BUILD_VARIANT "" CACHE STRING "Build variant: NO_OSC, BLINKY, MCO, PA_DEBUG (combine with +)")
 
 set(TARGET_MCU "" CACHE STRING "Target MCU (e.g., STM32G431, STM32G474)")
 # set default to G431 if not specified
@@ -205,6 +207,12 @@ if(BUILD_VARIANT MATCHES "(^|\\+)MCO($|\\+)")
     message(STATUS "Building with MCO verification support (PA8 should have a 10.625 clock signal on it)")
     set(BUILD_NAME "${BUILD_NAME}_MCO")
     add_compile_definitions(BUILD_VARIANT_MCO)
+endif()
+
+if(BUILD_VARIANT MATCHES "(^|\\+)PA_DEBUG($|\\+)")
+    message(STATUS "Building with the PA closed-loop OSD debug overlay enabled")
+    set(BUILD_NAME "${BUILD_NAME}_PA_DEBUG")
+    add_compile_definitions(BUILD_VARIANT_PA_DEBUG)
 endif()
 
 add_compile_definitions(

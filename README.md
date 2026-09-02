@@ -70,7 +70,7 @@ Each board lives in its own directory `src/targets/<TARGET_BOARD>/`:
 
 Discovery is automatic: to add a board, create the directory with its `target.h` (plus `target.c` and `target.cmake` if it has a VTX/PA), then build with `-DTARGET_BOARD=<name>`. Nothing in `CMakeLists.txt` or the source tree needs editing. An unknown `TARGET_BOARD` fails configuration with a list of the available ones.
 
-**VTX/PA is a property of the board, not a build variant.** `BUILD_VARIANT` now only carries the orthogonal options `NO_OSC`, `BLINKY`, `MCO` (combine with `+`).
+**VTX/PA is a property of the board, not a build variant.** `BUILD_VARIANT` now only carries the orthogonal options `NO_OSC`, `BLINKY`, `MCO`, `PA_DEBUG` (combine with `+`). `PA_DEBUG` compiles in the PA closed-loop OSD debug overlay (`debug_pa_loop()` and its field-edge trigger); it is off by default.
 
 Current targets:
 
