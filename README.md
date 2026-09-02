@@ -77,6 +77,7 @@ Current targets:
 * `GENERIC` (OSD only)
 * `GENERIC_VTX` (RTC6705, no PA)
 * `GENERIC_VTX_PA`
+* `GENERIC_VTX_PA_V2` (SE5004L-class linear external PA on the optimal `Cube/` pinout)
 * `GENERIC_VTX_PA_RTC76401` (The RTC76401 works, but not recommend due to its frequency range and efficiency)
 
 Example: `-DTARGET_BOARD=GENERIC_VTX -DBUILD_VARIANT=NO_OSC`.
