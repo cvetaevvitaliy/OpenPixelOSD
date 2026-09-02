@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /**
- * targets/generic_vtx_pa_rtc76401.h — board variant adding an RTC76401
+ * targets/GENERIC_VTX_PA_RTC76401/target.h — board variant adding an RTC76401
  * external PA stage downstream of the RTC6705.
  *
- * Differences from targets/generic.h:
+ * Differences from targets/GENERIC_VTX/target.h:
  *   - ADC_PA_VDET moves from PB11 to PA4 (RTC76401 pin 19, VPD).
  *     PA4 = ADC2_IN17, confirmed -- NOT reachable from ADC1. adc.c brings
  *     up ADC2 whenever ADC2_NEEDED is derived true (see main.h, right
@@ -15,23 +15,21 @@
  *     binary switch per the RTC76401 datasheet -- NOT a PWM/analog control.
  *     rf_pa.c gates its use on #if defined(PA_RTC76401).
  */
-#ifndef TARGET_GENERIC_VTX_PA_RTC76401_H
-#define TARGET_GENERIC_VTX_PA_RTC76401_H
+#ifndef TARGETS_GENERIC_VTX_PA_RTC76401_TARGET_H
+#define TARGETS_GENERIC_VTX_PA_RTC76401_TARGET_H
 
-/* Feature flags. Downstream code (adc.c, rf_pa.c, ...) gates on these,
- * never on a target/board name -- see targets/target.h.
- *   PA_RTC76401 -- this board's specific PA type: RTC76401 external PA,
- *                  DAC1_OUT2 bias into RTC6705's PAOUT1, separate enable
- *                  GPIO (PA_ON_*), VPD detector on its own ADC.
- *   USE_PA      -- this board has *some* PA needing bias/enable/detector
- *                  control. Set alongside every concrete PA feature. */
+/* PA type. Downstream code (adc.c, rf_pa.c, ...) gates on this, never on
+ * a target/board name. USE_PA (and USE_VTX) come from this board's
+ * target.cmake, not from here.
+ *   PA_RTC76401 -- RTC76401 external PA, DAC1_OUT2 bias into RTC6705's
+ *                  PAOUT1, separate enable GPIO (PA_ON_*), VPD detector
+ *                  on its own ADC. */
 #define PA_RTC76401
-#define USE_PA
 
 /* rf_pa.c's DAC-bias PID loop gains, operating on a VDET deviation in mV.
  * Unvalidated placeholders -- tune on the bench against this board's
  * actual bias/detector circuit once detector[] targets are populated in
- * targets/generic_vtx_pa_rtc76401_power.c */
+ * targets/GENERIC_VTX_PA_RTC76401/target.c */
 #define PA_CONTROL_Kp        0.6f
 #define PA_CONTROL_Ki        0.05f
 #define PA_CONTROL_Kd        0.0f
@@ -135,4 +133,4 @@ typedef enum {
 #define USER_KEY_Pin LL_GPIO_PIN_13
 #define USER_KEY_GPIO_Port GPIOC
 
-#endif //TARGET_GENERIC_VTX_PA_RTC76401_H
+#endif //TARGETS_GENERIC_VTX_PA_RTC76401_TARGET_H

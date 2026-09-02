@@ -3,7 +3,7 @@
  * vtx_power_levels.c — RAM-backed power table + EEPROM persistence, for
  * USE_PA boards only (a no-PA board has nothing to calibrate, and keeps
  * its target's g_vtx_power_levels[] a plain const -- see
- * vtx_power_levels.h and targets/generic_power.c).
+ * vtx_power_levels.h and targets/GENERIC_VTX/target.c).
  *
  * EEPROM block layout (see flash.h's flashBlock_t: {idx, value[7]}, 32
  * blocks total, block 31 already claimed by settings.c -- see

@@ -15,19 +15,19 @@
 
 /* Gains operate on a VDET deviation in mV (rf_detector_target - rf_detector,
  * both mV). Board-specific -- each USE_PA target header (e.g.
- * targets/generic_vtx_pa_rtc76401.h) MUST define all three; there's no
+ * targets/GENERIC_VTX_PA_RTC76401/target.h) MUST define all three; there's no
  * value that's a genuine no-op for a PID gain (Kp=1 still very much
  * drives the loop, and Kp=Ki=Kd=0 is really just "silently disabled"
  * wearing a different hat) -- so a missing definition is a compile
  * error rather than a silently-inherited default. */
 #if !defined(PA_CONTROL_Kp)
-#error "PA_CONTROL_Kp not defined -- set it in your board's target header (see targets/generic_vtx_pa_rtc76401.h)"
+#error "PA_CONTROL_Kp not defined -- set it in your board's target header (see targets/GENERIC_VTX_PA_RTC76401/target.h)"
 #endif
 #if !defined(PA_CONTROL_Ki)
-#error "PA_CONTROL_Ki not defined -- set it in your board's target header (see targets/generic_vtx_pa_rtc76401.h)"
+#error "PA_CONTROL_Ki not defined -- set it in your board's target header (see targets/GENERIC_VTX_PA_RTC76401/target.h)"
 #endif
 #if !defined(PA_CONTROL_Kd)
-#error "PA_CONTROL_Kd not defined -- set it in your board's target header (see targets/generic_vtx_pa_rtc76401.h)"
+#error "PA_CONTROL_Kd not defined -- set it in your board's target header (see targets/GENERIC_VTX_PA_RTC76401/target.h)"
 #endif
 
 /* Hard bounds on what the closed loop is ever allowed to command,
@@ -380,7 +380,7 @@ uint16_t rf_pa_read_vdet_mv(void)
 }
 
 #if defined(ADC_NTC_INSTANCE)
-/* Assumed circuit (see targets/generic_vtx_pa.h, the reference target
+/* Assumed circuit (see targets/GENERIC_VTX_PA/target.h, the reference target
  * this was written against): VDDA --[10k pullup]-- ADC_node --[10k NTC]--
  * GND, with a small capacitor from ADC_node to GND for noise filtering.
  * The cap only affects settling time / noise rejection -- this is a

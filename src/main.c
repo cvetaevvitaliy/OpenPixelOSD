@@ -86,7 +86,7 @@ int main (void)
 #endif
     msp_init();
 
-#if defined(BUILD_VARIANT_VTX)
+#if defined(USE_VTX)
     if(rtc6705_init()) {
         printf("rtc6705 detected\r\n");
 
@@ -105,6 +105,8 @@ int main (void)
     while (1)
     {
         bool field_edge_flag = new_field == false && last_new_field == true;
+        (void)field_edge_flag;
+
         last_new_field = new_field;
 
         msp_loop_process();
@@ -112,7 +114,7 @@ int main (void)
         debug_print_loop();
         logo_timeout_check();
 
-#if defined(BUILD_VARIANT_VTX) && defined(USE_PA)
+#if defined(USE_VTX) && defined(USE_PA)
         rf_pa_loop(field_edge_flag);
 #endif
 

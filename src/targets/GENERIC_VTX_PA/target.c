@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /**
- * targets/generic_vtx_pa_power.c — power table for the baseline PA
+ * targets/GENERIC_VTX_PA/target.c — power table for the baseline PA
  * (PA_GENERIC): a single DAC-biased amplifier, no separate boost-enable
  * GPIO (rf_pa_boost_on()/off() are no-ops without PA_RTC76401, so
  * ext_pa_enable's value here doesn't matter functionally -- set true for

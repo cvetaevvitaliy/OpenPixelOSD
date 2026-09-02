@@ -45,13 +45,14 @@ void gpio_init(void)
     LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
 
     /**/
-    LL_GPIO_ResetOutputPin(SPI2_CS_GPIO_Port, SPI2_CS_Pin);
-
-    /**/
     GPIO_InitStruct.Pin = USER_KEY_Pin;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
     LL_GPIO_Init(USER_KEY_GPIO_Port, &GPIO_InitStruct);
+
+#if defined(USE_VTX)
+    /**/
+    LL_GPIO_ResetOutputPin(SPI2_CS_GPIO_Port, SPI2_CS_Pin);
 
     /* Soft SPI for RTC6705 */
     GPIO_InitStruct.Pin = SPI2_CS_Pin;
@@ -74,6 +75,7 @@ void gpio_init(void)
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
     LL_GPIO_Init(SPI2_SCK_GPIO_Port, &GPIO_InitStruct);
+#endif
 
     /* Pull down PA12 to create USB disconnect pulse */
     LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_12);

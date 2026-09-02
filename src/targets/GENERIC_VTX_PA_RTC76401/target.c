@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /**
- * targets/generic_vtx_pa_rtc76401_power.c — power table for the RTC76401
+ * targets/GENERIC_VTX_PA_RTC76401/target.c — power table for the RTC76401
  * external PA board.
  *
  * RTC6705 register: PA5G_PW is not a gain ladder on this board. Each bit

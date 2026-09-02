@@ -1,14 +1,16 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /**
- * targets/generic.h — baseline board pin/resource definitions.
+ * targets/GENERIC_VTX/target.h — generic board with an RTC6705 VTX but
+ * no PA stage.
  *
- * No PA feature of any kind (USE_PA is never defined here) -- suitable
- * for a board with an RTC6705 but no PA stage to control. For boards
- * with a PA, see targets/generic_vtx_pa.h (baseline PA) or
- * targets/generic_vtx_pa_rtc76401.h (RTC76401 external PA).
+ * This is the GENERIC board's video pin layout plus the RTC6705 soft-SPI
+ * pins. No PA feature of any kind (USE_PA is never defined here). For
+ * boards with a PA, see targets/GENERIC_VTX_PA/target.h (baseline PA) or
+ * targets/GENERIC_VTX_PA_RTC76401/target.h (RTC76401 external PA). For an
+ * OSD-only board with no VTX at all, see targets/GENERIC/target.h.
  */
-#ifndef TARGET_GENERIC_H
-#define TARGET_GENERIC_H
+#ifndef TARGETS_GENERIC_VTX_TARGET_H
+#define TARGETS_GENERIC_VTX_TARGET_H
 
 typedef enum {
   ADC1_CH_RESERVED = 0,
@@ -89,4 +91,4 @@ typedef enum {
 #define USER_KEY_Pin LL_GPIO_PIN_13
 #define USER_KEY_GPIO_Port GPIOC
 
-#endif //TARGET_GENERIC_H
+#endif //TARGETS_GENERIC_VTX_TARGET_H

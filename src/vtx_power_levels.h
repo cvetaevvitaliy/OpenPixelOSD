@@ -9,7 +9,7 @@
  * it. This avoids a +1/-1 translation at every call site.
  *
  * STORAGE: on a USE_PA board, g_vtx_power_levels[] is a RUNTIME array in
- * RAM, not a target-fixed const. Each target's *_power.c defines the
+ * RAM, not a target-fixed const. Each target's target.c defines the
  * compile-time DEFAULTS (g_vtx_power_level_defaults[]); at boot,
  * vtx_power_levels_init() copies those into g_vtx_power_levels[], then
  * overlays any calibration[]/detector[] values found in EEPROM (see
@@ -37,7 +37,7 @@
 
 typedef struct {
     uint16_t        mW;             // advertised to the FC, informational only
-    rtc6705_power_t rtc6705_level;  // RTC6705 register step -- always meaningful, RTC6705 is always present under BUILD_VARIANT_VTX
+    rtc6705_power_t rtc6705_level;  // RTC6705 register step -- always meaningful, RTC6705 is always present under USE_VTX
 #if defined(USE_PA)
     bool     ext_pa_enable;                     // does this level engage the external boost PA stage (e.g. RTC76401)?
     uint16_t calibration[VTX_CAL_FREQ_POINTS];   // DAC mV per freq breakpoint (open-loop / PID setpoint)
@@ -48,8 +48,8 @@ typedef struct {
 #if defined(USE_PA)
 extern vtx_power_level_t g_vtx_power_levels[]; // RAM, mutable, sized VTX_POWER_LEVEL_MAX+1 -- see vtx_power_levels.c
 void vtx_power_levels_init(void);              // copies target defaults in, then overlays EEPROM data. Call once at boot, after flash_init().
-/* Provided by the active target's *_power.c -- e.g.
- * targets/generic_vtx_pa_rtc76401_power.c. Sign-correct, target-specific
+/* Provided by the active target's target.c -- e.g.
+ * targets/GENERIC_VTX_PA_RTC76401/target.c. Sign-correct, target-specific
  * "safe/uncalibrated" values -- NOT a generic zero, which would be
  * actively dangerous on an inverted-PA_DAC_SIGN board (low DAC = high
  * output there). This is what "reset to defaults" (see

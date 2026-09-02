@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /**
- * targets/generic_vtx_pa.h — generic board plus the baseline PA stage
+ * targets/GENERIC_VTX_PA/target.h — generic board plus the baseline PA stage
  * (DAC1_OUT2 bias on PA5, VDET on PB11/ADC1, no separate PA-enable GPIO).
  *
- * This is targets/generic.h's pin layout with the PA_GENERIC feature
- * (and USE_PA) turned on. Compare with targets/generic_vtx_pa_rtc76401.h,
+ * This is targets/GENERIC_VTX/target.h's pin layout with the PA_GENERIC feature
+ * (and USE_PA) turned on. Compare with targets/GENERIC_VTX_PA_RTC76401/target.h,
  * which instead turns on PA_RTC76401 (different PA type: separate enable
  * GPIO, VDET on ADC2 via PA4).
  *
@@ -12,23 +12,20 @@
  * NTC (see rf_pa.c's rf_pa_ntc_raw_to_celsius() for the assumed circuit
  * and math)
  */
-#ifndef TARGET_GENERIC_VTX_PA_H
-#define TARGET_GENERIC_VTX_PA_H
+#ifndef TARGETS_GENERIC_VTX_PA_TARGET_H
+#define TARGETS_GENERIC_VTX_PA_TARGET_H
 
-/* Feature flags. Downstream code (adc.c, rf_pa.c, ...) gates on these,
- * never on a target/board name -- see targets/target.h.
- *   USE_PA      -- this board has *some* PA stage needing bias/enable/
- *                  detector control. Set by every concrete PA feature
- *                  (PA_GENERIC here, PA_RTC76401 in the other header).
- *   PA_GENERIC  -- this board's specific PA type: DAC1_OUT2 bias (PA5),
- *                  VDET on PB11/ADC1, no separate PA-enable GPIO. */
+/* PA type. Downstream code (adc.c, rf_pa.c, ...) gates on this, never on
+ * a target/board name. USE_PA (and USE_VTX) come from this board's
+ * target.cmake, not from here.
+ *   PA_GENERIC -- DAC1_OUT2 bias (PA5), VDET on PB11/ADC1, no separate
+ *                 PA-enable GPIO. */
 #define PA_GENERIC
-#define USE_PA
 
 /* rf_pa.c's DAC-bias PID loop gains, operating on a VDET deviation in mV.
  * Unvalidated placeholders -- tune on the bench against this board's
  * actual bias/detector circuit once detector[] targets are populated in
- * targets/generic_vtx_pa_power.c. */
+ * targets/GENERIC_VTX_PA/target.c. */
 #define PA_CONTROL_Kp        0.6f
 #define PA_CONTROL_Ki        0.05f
 #define PA_CONTROL_Kd        0.0f
@@ -36,7 +33,7 @@
 
 /* Hard bounds on what the closed loop is ever allowed to command.
  * UNVALIDATED placeholders -- this board's bias circuit has never had a
- * real bench sweep with the boost stage on (see targets/generic_vtx_pa_power.c),
+ * real bench sweep with the boost stage on (see targets/GENERIC_VTX_PA/target.c),
  * unlike the RTC76401 target's bounds which are anchored to bench data.
  * Do not trust these until you've done that sweep. */
 #define PA_CONTROL_MV_MIN     2400u
@@ -44,7 +41,7 @@
 #define PA_CONTROL_I_CLAMP_MV 300.0f
 
 /* UNCONFIRMED -- this board's bias circuit has never been bench-tested
- * (see targets/generic_vtx_pa_power.c). -1.0f assumes the more typical
+ * (see targets/GENERIC_VTX_PA/target.c). -1.0f assumes the more typical
  * linear-bias sense (higher DAC = more bias = more output), the OPPOSITE
  * of RTC76401's Q2 gate-injection scheme. Verify on real hardware before
  * trusting the closed loop on this board -- do not assume this is
@@ -144,4 +141,4 @@ typedef enum {
 #define USER_KEY_Pin LL_GPIO_PIN_13
 #define USER_KEY_GPIO_Port GPIOC
 
-#endif //TARGET_GENERIC_VTX_PA_H
+#endif //TARGETS_GENERIC_VTX_PA_TARGET_H

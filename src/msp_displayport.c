@@ -13,7 +13,7 @@
 #include "uart.h"
 #include "usb.h"
 
-#if defined(BUILD_VARIANT_VTX)
+#if defined(USE_VTX)
 #include "vtx_msp.h"
 #define MSP_REQUEST_LOOP_INTERVAL 1000
 #endif
@@ -44,7 +44,7 @@ EXEC_RAM bool msp_displayport_handle_msp(uint8_t owner, uint16_t msp_cmd, uint16
             {
                 static bool displayport_initialized = false;
                 if (!displayport_initialized) {
-                    #if defined(BUILD_VARIANT_VTX)
+                    #if defined(USE_VTX)
                     vtx_msp_request_config(owner);
                     #endif
                     displayport_initialized = true;

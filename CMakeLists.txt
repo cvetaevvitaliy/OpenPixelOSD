@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
 # ===== Build variant selection =====
-#   OpenPixelOSD             -> base OSD (no VTX drivers, with external oscillator)
-#   OpenPixelOSD_VTX         -> OSD + VTX (RTC6705 / PA / MSP VTX)
-#   OpenPixelOSD_VTX_NO_OSC  -> OSD + VTX (RTC6705 / PA / MSP VTX, no external oscillator)
-set(BUILD_VARIANT "" CACHE STRING "Build variant: VTX")
+# Orthogonal build options, combine with '+' (e.g. BLINKY+NO_OSC):
+#   NO_OSC  -> no external oscillator
+#   BLINKY  -> minimal "blinky" bring-up build
+#   MCO     -> route the master clock to a pin for verification
+# VTX/PA is NOT a build variant -- it is a property of the selected
+# TARGET_BOARD, declared in that board's target.cmake (see below).
+set(BUILD_VARIANT "" CACHE STRING "Build variant: NO_OSC, BLINKY, MCO (combine with +)")
 
 set(TARGET_MCU "" CACHE STRING "Target MCU (e.g., STM32G431, STM32G474)")
 # set default to G431 if not specified
@@ -11,30 +14,46 @@ if(NOT TARGET_MCU)
     set(TARGET_MCU STM32G431)
 endif()
 
-if(NOT TARGET_BOARD)
-    set(TARGET_BOARD "GENERIC")
+# ===== Board target selection =====
+# Each board lives in its own directory: src/targets/<TARGET_BOARD>/ ,
+# containing:
+#   target.h    -- pin/resource defines + PA-type/PID constants. Always
+#                  on the include path (included as "target.h").
+#   target.c    -- the VTX power table. Required for a VTX board.
+#   target.cmake -- OPTIONAL build-flag fragment, included below. Declares
+#                  board properties the build reacts to:
+#                    set(TARGET_USE_VTX TRUE)  -- compile the RTC6705/VTX
+#                                                 source set + target.c,
+#                                                 define USE_VTX
+#                    set(TARGET_USE_PA  TRUE)  -- define USE_PA (implies VTX)
+# Adding a board is just creating that directory -- nothing here or in the
+# source tree needs editing.
+set(TARGET_BOARD "GENERIC" CACHE STRING "Board target: directory name under src/targets/")
+
+set(TARGET_BOARD_DIR "${CMAKE_SOURCE_DIR}/src/targets/${TARGET_BOARD}")
+
+if(NOT EXISTS "${TARGET_BOARD_DIR}/target.h")
+    file(GLOB _target_dirs RELATIVE "${CMAKE_SOURCE_DIR}/src/targets"
+         "${CMAKE_SOURCE_DIR}/src/targets/*")
+    set(_available_targets "")
+    foreach(_d ${_target_dirs})
+        if(EXISTS "${CMAKE_SOURCE_DIR}/src/targets/${_d}/target.h")
+            list(APPEND _available_targets "${_d}")
+        endif()
+    endforeach()
+    string(JOIN ", " _available_targets ${_available_targets})
+    message(FATAL_ERROR "Unknown TARGET_BOARD '${TARGET_BOARD}'. Available: ${_available_targets}")
 endif()
 
-# ===== Board target selection =====
-# Selects which src/targets/*.h pin/resource header is active (see
-# src/targets/target.h).
-#   GENERIC                 -> no PA of any kind (RTC6705 only, if BUILD_VARIANT includes VTX)
-#   GENERIC_VTX_PA           -> baseline PA (DAC1_OUT2 bias, VDET on PB11)
-#   GENERIC_VTX_PA_RTC76401  -> RTC76401 external PA
-set(TARGET_BOARD "GENERIC" CACHE STRING "Board target: GENERIC, GENERIC_VTX_PA, GENERIC_VTX_PA_RTC76401")
+message(STATUS "Building for board target: ${TARGET_BOARD} (src/targets/${TARGET_BOARD}/)")
+add_compile_definitions(TARGET_BOARD_NAME="${TARGET_BOARD}")
 
-if(TARGET_BOARD STREQUAL "GENERIC_VTX_PA_RTC76401")
-    message(STATUS "Building for board target: GENERIC_VTX_PA_RTC76401 (RTC76401 external PA)")
-    add_compile_definitions(TARGET_BOARD_VTX_PA_RTC76401)
-    set(TARGET_POWER_SRC ./src/targets/generic_vtx_pa_rtc76401_power.c)
-elseif(TARGET_BOARD STREQUAL "GENERIC_VTX_PA")
-    message(STATUS "Building for board target: GENERIC_VTX_PA (baseline PA)")
-    add_compile_definitions(TARGET_BOARD_VTX_PA)
-    set(TARGET_POWER_SRC ./src/targets/generic_vtx_pa_power.c)
-elseif(TARGET_BOARD STREQUAL "GENERIC")
-    set(TARGET_POWER_SRC ./src/targets/generic_power.c)
-else()
-    message(FATAL_ERROR "Unknown TARGET_BOARD: ${TARGET_BOARD}")
+# Per-board build flags. A board with no target.cmake is a plain OSD board.
+set(TARGET_USE_VTX FALSE)
+set(TARGET_USE_PA FALSE)
+include("${TARGET_BOARD_DIR}/target.cmake" OPTIONAL)
+if(TARGET_USE_PA)
+    set(TARGET_USE_VTX TRUE)   # a PA board always carries the RTC6705 VTX
 endif()
 
 message(STATUS "Selected TARGET_MCU=${TARGET_MCU} BUILD_VARIANT=${BUILD_VARIANT} TARGET_BOARD=${TARGET_BOARD}")
@@ -149,17 +168,25 @@ endif()
 #${FEATURE_NAME} - Match the feature name exactly
 #($|\\+) - Match either end of string ($) OR a plus sign (\\+)
 
-if(BUILD_VARIANT MATCHES "(^|\\+)VTX($|\\+)")
-    message(STATUS "Building with VTX support")
+# VTX/PA source set + defines -- driven by the board's target.cmake, not BUILD_VARIANT.
+if(TARGET_USE_VTX)
+    message(STATUS "Board ${TARGET_BOARD}: VTX enabled")
+    if(NOT EXISTS "${TARGET_BOARD_DIR}/target.c")
+        message(FATAL_ERROR "VTX board '${TARGET_BOARD}' must provide src/targets/${TARGET_BOARD}/target.c")
+    endif()
     set(BUILD_NAME "${BUILD_NAME}_VTX")
-    add_compile_definitions(BUILD_VARIANT_VTX)
     add_compile_definitions(USE_VTX)
     set(VTX_SRC
             ./src/rtc6705.c
             ./src/rf_pa.c
             ./src/vtx_msp.c
             ./src/vtx_power_levels.c
-            ${TARGET_POWER_SRC})
+            "${TARGET_BOARD_DIR}/target.c")
+endif()
+
+if(TARGET_USE_PA)
+    message(STATUS "Board ${TARGET_BOARD}: PA enabled")
+    add_compile_definitions(USE_PA)
 endif()
 
 if(BUILD_VARIANT MATCHES "(^|\\+)BLINKY($|\\+)")
@@ -226,6 +253,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+        ${TARGET_BOARD_DIR}
         ./src/stm32g4xx
         ./src/msp
         ./src

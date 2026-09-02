@@ -52,7 +52,7 @@ typedef enum {
 #define ADC_INSTANCE_1 1
 #define ADC_INSTANCE_2 2
 
-#include "targets/target.h"
+#include "target.h"
 
 // Derives whether ADC2 needs to exist AT ALL from the actual per-channel
 // instance claims the target header makes.

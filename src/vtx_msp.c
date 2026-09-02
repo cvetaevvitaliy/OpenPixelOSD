@@ -5,7 +5,7 @@
 #include "vtx_msp.h"
 #include "main.h"
 
-#if defined(BUILD_VARIANT_VTX)
+#if defined(USE_VTX)
 
 #include "msp.h"
 #include "msp_displayport.h"
@@ -388,7 +388,7 @@ void vtx_msp_push_calibration_table(uint8_t owner)
 /* Two payload shapes:
  *   data_size == 1, payload[0] == 0xFF: reset ALL levels back to this
  *     target's own compiled-in defaults (g_vtx_power_level_defaults[],
- *     from this board's *_power.c) -- NOT a hardcoded/zeroed value,
+ *     from this board's target.c) -- NOT a hardcoded/zeroed value,
  *     since what counts as "safe/uncalibrated" depends on PA_DAC_SIGN
  *     and varies by target (a naive 0 would be actively dangerous on an
  *     inverted-sign board, where low DAC = high output). No level is

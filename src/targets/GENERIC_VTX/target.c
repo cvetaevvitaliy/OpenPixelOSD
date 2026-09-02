@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /**
- * targets/generic_power.c — power table for a board with RTC6705 but no
+ * targets/GENERIC_VTX/target.c — power table for a board with RTC6705 but no
  * PA feature (USE_PA undefined here). Just RTC6705's own 4 register
  * steps -- no boost stage, no DAC/detector fields (they don't exist in
  * vtx_power_level_t on this build).
