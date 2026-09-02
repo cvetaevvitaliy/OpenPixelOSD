@@ -102,9 +102,9 @@ static inline void dac_ch2_write_mv(uint16_t mv)
 }
 
 /* External/boost PA GPIO control only -- does NOT touch the DAC bias.
- * No-op on boards without a separate boost-enable pin (e.g. PA_GENERIC).
- * Callers are expected to have already written the DAC to its intended
- * value before calling this.
+ * No-op on boards without a separate enable pin (no PA_ON_Pin in the
+ * target header). Callers are expected to have already written the DAC
+ * to its intended value before calling this.
  *
  * see GATE_SETTLE_MS too
  */
@@ -173,7 +173,10 @@ void rf_pa_init(void)
      * and zeroes it). */
     LL_DAC_Enable(DAC1, LL_DAC_CHANNEL_2);
 
-#if defined(PA_RTC76401)
+    /* Boards with a separate PA enable line (PA_ON_Pin in the target
+     * header) bring it up as a push-pull output here. Boards without one
+     * skip this entirely -- rf_pa_boost_on()/off() are then no-ops. */
+#if defined(PA_ON_Pin)
     LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB); /* harmless if already on */
     LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC); /* harmless if already on */
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};

@@ -60,7 +60,7 @@ The project is licensed under GPL‑2.0, as noted in the LICENSE file. With thes
 
 Each board lives in its own directory `src/targets/<TARGET_BOARD>/`:
 
-* `target.h` – pin/resource defines plus PA-type (`PA_GENERIC` / `PA_RTC76401`) and PID constants. Always on the include path; included via `#include "target.h"`.
+* `target.h` – pin/resource defines plus, for a PA board, the PA bias/detector PID constants. Always on the include path; included via `#include "target.h"`.
 * `target.c` – the VTX power table. Required for a VTX board.
 * `target.cmake` – *optional* build-flag fragment, `include()`d automatically by `CMakeLists.txt`. Declares board properties:
   * `set(TARGET_USE_VTX TRUE)` – compile the RTC6705/VTX/PA source set + `target.c`, define `USE_VTX`.

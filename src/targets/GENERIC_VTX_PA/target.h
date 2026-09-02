@@ -3,10 +3,11 @@
  * targets/GENERIC_VTX_PA/target.h — generic board plus the baseline PA stage
  * (DAC1_OUT2 bias on PA5, VDET on PB11/ADC1, no separate PA-enable GPIO).
  *
- * This is targets/GENERIC_VTX/target.h's pin layout with the PA_GENERIC feature
- * (and USE_PA) turned on. Compare with targets/GENERIC_VTX_PA_RTC76401/target.h,
- * which instead turns on PA_RTC76401 (different PA type: separate enable
- * GPIO, VDET on ADC2 via PA4).
+ * This is targets/GENERIC_VTX/target.h's pin layout with USE_PA turned
+ * on. It defines no PA_ON_Pin, so rf_pa.c's enable/disable calls are
+ * no-ops -- the PA is DAC-bias only. Compare with
+ * targets/GENERIC_VTX_PA_RTC76401/target.h, which adds a separate enable
+ * GPIO and moves VDET to ADC2 via PA4.
  *
  * This is also the reference target for PA thermal monitoring via an
  * NTC (see rf_pa.c's rf_pa_ntc_raw_to_celsius() for the assumed circuit
@@ -15,12 +16,10 @@
 #ifndef TARGETS_GENERIC_VTX_PA_TARGET_H
 #define TARGETS_GENERIC_VTX_PA_TARGET_H
 
-/* PA type. Downstream code (adc.c, rf_pa.c, ...) gates on this, never on
- * a target/board name. USE_PA (and USE_VTX) come from this board's
- * target.cmake, not from here.
- *   PA_GENERIC -- DAC1_OUT2 bias (PA5), VDET on PB11/ADC1, no separate
- *                 PA-enable GPIO. */
-#define PA_GENERIC
+/* USE_PA / USE_VTX come from this board's target.cmake, not from here.
+ * The firmware has no "PA type" macro -- shared code keys off USE_PA and
+ * the concrete resource defines below. This board: DAC1_OUT2 bias (PA5),
+ * VDET on PB11/ADC1, no separate PA-enable GPIO. */
 
 /* rf_pa.c's DAC-bias PID loop gains, operating on a VDET deviation in mV.
  * Unvalidated placeholders -- tune on the bench against this board's

@@ -13,18 +13,17 @@
  *     "unused analog input" duties, PB11 doesn't need its own entry.
  *   - New PA_ON_Pin/PA_ON_GPIO_Port: RTC76401 VREF enable (PB10), a fast
  *     binary switch per the RTC76401 datasheet -- NOT a PWM/analog control.
- *     rf_pa.c gates its use on #if defined(PA_RTC76401).
+ *     Defining PA_ON_Pin is what makes rf_pa.c bring the pin up and
+ *     toggle it on PA enable/disable.
  */
 #ifndef TARGETS_GENERIC_VTX_PA_RTC76401_TARGET_H
 #define TARGETS_GENERIC_VTX_PA_RTC76401_TARGET_H
 
-/* PA type. Downstream code (adc.c, rf_pa.c, ...) gates on this, never on
- * a target/board name. USE_PA (and USE_VTX) come from this board's
- * target.cmake, not from here.
- *   PA_RTC76401 -- RTC76401 external PA, DAC1_OUT2 bias into RTC6705's
- *                  PAOUT1, separate enable GPIO (PA_ON_*), VPD detector
- *                  on its own ADC. */
-#define PA_RTC76401
+/* USE_PA / USE_VTX come from this board's target.cmake, not from here.
+ * The firmware has no "PA type" macro -- shared code keys off USE_PA and
+ * the concrete resource defines below (PA_ON_Pin, ADC_PA_VDET_*, ...).
+ * This board: RTC76401 external PA, DAC1_OUT2 bias into RTC6705's PAOUT1,
+ * separate enable GPIO (PA_ON_*), VPD detector on its own ADC. */
 
 /* rf_pa.c's DAC-bias PID loop gains, operating on a VDET deviation in mV.
  * Unvalidated placeholders -- tune on the bench against this board's
