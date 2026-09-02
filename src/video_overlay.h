@@ -5,6 +5,8 @@
 #ifndef VIDEO_OVERLAY_H
 #define VIDEO_OVERLAY_H
 
+extern bool new_field;
+
 void video_overlay_init(void);
 
 #endif //VIDEO_OVERLAY_H

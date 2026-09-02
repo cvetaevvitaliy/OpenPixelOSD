@@ -13,6 +13,11 @@
 #define MSP_PORT_BUFF_SIZE    192
 #define MSP_V2_FRAME_ID       255
 
+#define MSP_PACALTABLE            0x4800
+#define MSP_SET_PACALTABLE        0x4801
+#define MSP_PACALIBRATION         0x4802
+#define MSP_SET_PACALIBRATION     0x4803
+
 typedef enum {
     MSP_IDLE,
     MSP_HEADER_START,
@@ -46,6 +51,13 @@ typedef enum {
     MSP_PACKET_COMMAND,
     MSP_PACKET_RESPONSE
 }msp_packet_type_t;
+
+typedef enum
+{
+  MSP_OWNER_UART = 0x00,
+  MSP_OWNER_USB = 0x01,
+  MSP_OWNER_MAX = 0xFF
+} msp_owner_t;
 
 typedef void (*msp_msg_callback)(uint8_t owner, msp_version_t msp_version, uint16_t msp_cmd, uint16_t data_size, const uint8_t *payload);
 
@@ -91,10 +103,21 @@ typedef enum {
       MSP_OUTBOUND
 }msp_direction_t;
 
+enum {
+    MSP_REBOOT_FIRMWARE = 0,
+    MSP_REBOOT_BOOTLOADER_ROM,
+    MSP_REBOOT_COUNT,
+};
+
 void msp_process_received_data(msp_port_t *mspPort, uint8_t c);
 
 uint16_t construct_msp_command_v1(uint8_t message_buffer[], uint8_t command, const uint8_t *payload, uint8_t size, msp_direction_t direction);
 
 uint16_t construct_msp_command_v2(uint8_t message_buffer[], uint16_t function, const uint8_t *payload, uint8_t size, msp_packet_type_t msp_packet_type);
+
+void msp_init(void);
+void msp_tx_send_owner(uint8_t owner, const uint8_t *buf, uint16_t len);
+void msp_send_command(uint8_t owner, uint8_t command);
+void msp_loop_process(void);
 
 #endif //MSP_H

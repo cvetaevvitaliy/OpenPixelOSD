@@ -63,3 +63,10 @@ venv/
 /Cube/stm32g431cbux_flash.ld
 doc/.$OpenPixelOSD.drawio.bkp
 
+/cmake/stm32/CMakeFiles/
+/cmake/stm32/ALL_BUILD.dir/
+/cmake/stm32/stm32cubemx.slnx
+/cmake/stm32/cmake_install.cmake
+/cmake/stm32/ALL_BUILD.vcxproj.filters
+/cmake/stm32/ALL_BUILD.vcxproj
+
