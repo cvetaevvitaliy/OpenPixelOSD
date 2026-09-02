@@ -80,7 +80,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME OpenPixelOSD LANGUAGES C ASM)
+set(CMAKE_PROJECT_NAME OpenPixelOSD)
 
 # Include toolchain file
 include("cmake/gcc-arm-none-eabi.cmake")
@@ -88,7 +88,7 @@ include("cmake/gcc-arm-none-eabi.cmake")
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-project(${CMAKE_PROJECT_NAME})
+project(${CMAKE_PROJECT_NAME} LANGUAGES C ASM)
 message(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
 
 add_executable(${CMAKE_PROJECT_NAME})
@@ -199,8 +199,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 
 # make a zip file containing the hex, bin, map and elf
 set(ZIP_NAME "${CMAKE_PROJECT_NAME}_${TARGET_MCU}_${CMAKE_BUILD_TYPE}${BUILD_NAME}")
-set(TARGET_LANGUAGES "C;ASM")
-set(MAP_FILE "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME};LANGUAGES;${TARGET_LANGUAGES}.map")
+set(MAP_FILE "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.map")
 
 # Create ZIP after build completes
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
