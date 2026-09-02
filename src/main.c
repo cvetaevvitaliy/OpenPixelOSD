@@ -37,12 +37,26 @@ void debug_print_loop(void)
     }
 }
 
-
+#if defined(BUILD_VARIANT_BLINKY)
 int main (void)
 {
     HAL_Init();
     SystemClock_Config();
     gpio_init();
+
+    while (1) {
+        led_blink();
+    }
+}
+#endif
+
+#if !defined(BUILD_VARIANT_BLINKY)
+int main (void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    gpio_init();
+
     usb_init();
     dma_init();
     adc_init();
@@ -83,6 +97,7 @@ int main (void)
 
     }
 }
+#endif
 
 void led_blink(void)
 {
