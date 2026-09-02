@@ -23,7 +23,6 @@
 
 #if defined(HIGH_RAM)
 #include "video_graphics.h"
-extern bool new_field;
 #endif
 
 #define LED_BLINK_INTERVAL 100 // milliseconds
