@@ -58,15 +58,19 @@ _estack = ORIGIN(RAM) + LENGTH(RAM);    /* end of RAM */
 _Min_Heap_Size = 0x1000;      /* required amount of heap  */
 _Min_Stack_Size = 0x1000; /* required amount of stack */
 
+__eeprom_size = 0x1000;       /* 4K */
+__msp_font_size = 0x4000;     /* 16K */
+
 /* Specify the memory areas */
 MEMORY
 {
-  RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 128K
-  FLASH (rx)        : ORIGIN = 0x08000000, LENGTH = 0x80000 - 0x4000 - 0x2000 - 0x4000 /* 512K - 16K - 8K - 16K = 472K */
-  FLASH_SYS_FONT (rx) : ORIGIN = 0x08000000 + (0x80000 - 0x4000 - 0x2000 - 0x4000), LENGTH = 0x4000 /* 16K */
-  FLASH_LOGO (rx)   : ORIGIN = 0x08000000 + (0x80000 - 0x4000 - 0x2000), LENGTH = 0x2000 /* 8K */
-  FLASH_MSP_FONT (rx)   : ORIGIN = 0x08000000 + (0x80000 - 0x4000), LENGTH = 0x4000 /* 16K */
-  CCMRAM (xrw)    : ORIGIN = 0x10000000, LENGTH = 32K
+  RAM (xrw)           : ORIGIN = 0x20000000, LENGTH = 96K
+  FLASH (rx)          : ORIGIN = 0x08000000, LENGTH = 0x80000 - __eeprom_size - 0x4000 - 0x2000 - 0x4000 /* 512K - 4K - 16K - 8K - 16K = 468K */
+  FLASH_SYS_FONT (rx) : ORIGIN = 0x08000000 + (0x80000 - __eeprom_size - __msp_font_size - 0x2000 - 0x4000), LENGTH = 0x4000 /* 16K */
+  FLASH_LOGO (rx)     : ORIGIN = 0x08000000 + (0x80000 - __eeprom_size - __msp_font_size - 0x2000), LENGTH = 0x2000 /* 8K */
+  FLASH_MSP_FONT (rx) : ORIGIN = 0x08000000 + (0x80000 - __eeprom_size - __msp_font_size), LENGTH = __msp_font_size
+  FLASH_EEPROM (rx)   : ORIGIN = 0x08000000 + (0x80000 - __eeprom_size), LENGTH = __eeprom_size
+  CCMRAM (xrw)        : ORIGIN = 0x10000000, LENGTH = 32K
 }
 
 /* Define output sections */
@@ -223,6 +227,17 @@ SECTIONS
     . = ALIGN(4);         /* end of the section – align to 4 bytes */
     __font_end = .;
   } > FLASH_MSP_FONT         /* place in the FLASH_FONT region */
+
+  /* === Separate section for the eeprom, aligned to 4 bytes === */
+  .eeprom :
+  {
+    . = ALIGN(4);         /* start of the section – align to 4 bytes */
+    __eeprom_start = .;
+    KEEP(*(.eeprom))       /* capture everything from the .eeprom section */
+    KEEP(*(.eeprom.*))     /* also capture subsections .eeprom.* */
+    . = ALIGN(4);         /* end of the section – align to 4 bytes */
+    __eeprom_end = .;
+  } > FLASH_EEPROM         /* place in the FLASH_EEPROM region */
 
   /* === Separate section for the logo, aligned to 4 bytes === */
   .logo :

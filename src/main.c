@@ -3,15 +3,21 @@
  * Copyright (C) 2025 Vitaliy N <vitaliy.nimych@gmail.com>
  */
 #include "main.h"
+#include "msp.h"
 #include "msp_displayport.h"
 #include "system.h"
 #include "usb.h"
 #include "video_gen.h"
 #include "video_overlay.h"
+#include "canvas_char.h"
 
-#if defined(BUILD_VARIANT_VTX)
+#include "flash.h"
+#include "led.h"
+
+#if defined(USE_VTX)
 #include "rtc6705.h"
-#include <rf_pa.h>
+#include "rf_pa.h"
+#include "vtx_msp.h"
 #endif
 #include <stdio.h>
 
@@ -55,11 +61,22 @@ int main (void)
 {
     HAL_Init();
     SystemClock_Config();
+#ifdef USE_SWO
+    SWO_Init();
+    TRACE_INFO_WP("\n");
+    TRACE_INFO("OpenPixelOSD\n");
+    TRACE_INFO("Compiled: %s %s --\n", __DATE__, __TIME__);
+#endif
     gpio_init();
 
     usb_init();
     dma_init();
+    led_init();
     adc_init();
+    flash_init();              // before anything reads/writes EEPROM
+#if defined(USE_PA)
+    vtx_power_levels_init();   // after flash_init(), before rf_pa_init()/first MSP config
+#endif
 
     video_overlay_init();
 #if defined(HIGH_RAM)
@@ -67,33 +84,42 @@ int main (void)
     video_draw_text_system_font(FONT_SYSTEM_WIDTH * 2, VIDEO_HEIGHT - FONT_SYSTEM_HEIGHT, "WAITING MSP...");
     video_graphics_draw_complete();
 #endif
-    msp_displayport_init();
+    msp_init();
 
 #if defined(BUILD_VARIANT_VTX)
     if(rtc6705_init()) {
         printf("rtc6705 detected\r\n");
-        rtc6705_set_frequency(5880); // TODO: remove after implementing configuration saving to flash
 
-        rf_pa_init();
-        rf_pa_set_power_level(RF_PA_PWR_20mW);
+#if defined(USE_PA)
+        rf_pa_init(); // must run before rtc6705_set_frequency(): that call
+                      // gates rf_pa_disable()/rf_pa_enable() around retuning,
+                      // which need PA_ON_Pin already in output mode and
+                      // DAC1 ch2 already enabled.
+#endif
+
+        rtc6705_set_frequency(5880); // TODO: remove after implementing configuration saving to flash
     }
 #endif
 
+    bool last_new_field = new_field;
     while (1)
     {
+        bool field_edge_flag = new_field == false && last_new_field == true;
+        last_new_field = new_field;
+
         msp_loop_process();
         led_blink();
         debug_print_loop();
         logo_timeout_check();
 
-#if defined(BUILD_VARIANT_VTX)
-        rf_pa_loop();
+#if defined(BUILD_VARIANT_VTX) && defined(USE_PA)
+        rf_pa_loop(field_edge_flag);
 #endif
 
 #if 0 // TODO: remove later
 // For test only - 3D cube animation
 #if defined(HIGH_RAM)
-        if (new_field == false) {
+        if (field_edge_flag) {
             video_draw_3d_cube_animation();
         }
 #endif
@@ -108,8 +134,9 @@ void led_blink(void)
     static uint32_t last_tick = 0;
 
     if ((HAL_GetTick() - last_tick) >= LED_BLINK_INTERVAL) {
-        LED_STATE_GPIO_Port->ODR ^= LED_STATE_Pin;
-        last_tick = HAL_GetTick();
+      led_toggle(LED_STATE);
+
+      last_tick = HAL_GetTick();
     }
 }
 

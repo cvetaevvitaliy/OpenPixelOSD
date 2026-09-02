@@ -17,14 +17,23 @@ endif()
 
 # ===== Board target selection =====
 # Selects which src/targets/*.h pin/resource header is active (see
-# src/targets/target.h). "generic" = baseline board (no external PA
-# stage). Add new boards under src/targets/ and a matching branch here.
-set(TARGET_BOARD "GENERIC" CACHE STRING "Board target: GENERIC, GENERIC_VTX_PA_RTC76401")
+# src/targets/target.h).
+#   GENERIC                 -> no PA of any kind (RTC6705 only, if BUILD_VARIANT includes VTX)
+#   GENERIC_VTX_PA           -> baseline PA (DAC1_OUT2 bias, VDET on PB11)
+#   GENERIC_VTX_PA_RTC76401  -> RTC76401 external PA
+set(TARGET_BOARD "GENERIC" CACHE STRING "Board target: GENERIC, GENERIC_VTX_PA, GENERIC_VTX_PA_RTC76401")
 
 if(TARGET_BOARD STREQUAL "GENERIC_VTX_PA_RTC76401")
     message(STATUS "Building for board target: GENERIC_VTX_PA_RTC76401 (RTC76401 external PA)")
     add_compile_definitions(TARGET_BOARD_VTX_PA_RTC76401)
-elseif(NOT TARGET_BOARD STREQUAL "GENERIC")
+    set(TARGET_POWER_SRC ./src/targets/generic_vtx_pa_rtc76401_power.c)
+elseif(TARGET_BOARD STREQUAL "GENERIC_VTX_PA")
+    message(STATUS "Building for board target: GENERIC_VTX_PA (baseline PA)")
+    add_compile_definitions(TARGET_BOARD_VTX_PA)
+    set(TARGET_POWER_SRC ./src/targets/generic_vtx_pa_power.c)
+elseif(TARGET_BOARD STREQUAL "GENERIC")
+    set(TARGET_POWER_SRC ./src/targets/generic_power.c)
+else()
     message(FATAL_ERROR "Unknown TARGET_BOARD: ${TARGET_BOARD}")
 endif()
 
@@ -144,10 +153,13 @@ if(BUILD_VARIANT MATCHES "(^|\\+)VTX($|\\+)")
     message(STATUS "Building with VTX support")
     set(BUILD_NAME "${BUILD_NAME}_VTX")
     add_compile_definitions(BUILD_VARIANT_VTX)
+    add_compile_definitions(USE_VTX)
     set(VTX_SRC
             ./src/rtc6705.c
             ./src/rf_pa.c
-            ./src/vtx_msp.c)
+            ./src/vtx_msp.c
+            ./src/vtx_power_levels.c
+            ${TARGET_POWER_SRC})
 endif()
 
 if(BUILD_VARIANT MATCHES "(^|\\+)BLINKY($|\\+)")
@@ -191,23 +203,25 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/stm32g4xx/syscalls.c
         ./src/stm32g4xx/system.c
         ./src/msp/msp.c
-        ./src/gpio.c
-        ./src/dac.c
         ./src/adc.c
+        ./src/canvas_char.c
+        ./src/comp.c
+        ./src/dac.c
         ./src/dma.c
+        ./src/flash.c
+        ./src/gpio.c
+        ./src/led.c
+        ./src/msp_displayport.c
+        ./src/msp_fc.c
         ./src/opamp.c
         ./src/tim.c
-        ./src/comp.c
+        ./src/video_gen.c
+        ./src/video_graphics.c
+        ./src/video_overlay.c
         ./src/uart.c
         ./src/usb.c
-        ./src/video_gen.c
-        ./src/video_overlay.c
-        ./src/canvas_char.c
-        ./src/msp_displayport.c
-        ./src/fonts/update_font.c
-        ./src/video_graphics.c
         ./src/main.c
-
+        ./src/fonts/update_font.c
 )
 
 # Add include paths

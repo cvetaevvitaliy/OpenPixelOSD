@@ -58,14 +58,18 @@ _estack = ORIGIN(RAM) + LENGTH(RAM);    /* end of RAM */
 _Min_Heap_Size = 0x1000;      /* required amount of heap  */
 _Min_Stack_Size = 0x1000; /* required amount of stack */
 
+__eeprom_size = 0x1000;
+__msp_font_size = 0x4000;     /* 16K */
+
 /* Specify the memory areas */
 MEMORY
 {
-  RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 32K
-  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 0x20000 - 0x4000 - 0x2000  /* 112K - 8K = 104K */
-  FLASH_LOGO (rx) : ORIGIN = 0x08000000 + (0x20000 - 0x4000 - 0x2000), LENGTH = 0x2000  /* 8K */
-  FLASH_FONT (rx) : ORIGIN = 0x08000000 + (0x20000 - 0x4000), LENGTH = 0x4000           /* 16K */
-  CCMRAM (xrw)    : ORIGIN = 0x10000000, LENGTH = 10K
+  RAM (xrw)         : ORIGIN = 0x20000000, LENGTH = 22K
+  FLASH (rx)        : ORIGIN = 0x08000000, LENGTH = 0x20000 - __eeprom_size - __msp_font_size - 0x2000  /* 112K - 8K -4K = 100K */
+  FLASH_LOGO (rx)   : ORIGIN = 0x08000000 + (0x20000 - __eeprom_size - __msp_font_size - 0x2000), LENGTH = 0x2000  /* 8K */
+  FLASH_FONT (rx)   : ORIGIN = 0x08000000 + (0x20000 - __eeprom_size - __msp_font_size ), LENGTH = __msp_font_size
+  FLASH_EEPROM (rx) : ORIGIN = 0x08000000 + (0x20000 - __eeprom_size), LENGTH = __eeprom_size  /* 4K */
+  CCMRAM (xrw)      : ORIGIN = 0x10000000, LENGTH = 10K
 }
 
 /* Define output sections */
@@ -204,6 +208,17 @@ SECTIONS
     __font_end = .;
   } > FLASH_FONT         /* place in the FLASH_FONT region */
 
+  /* === Separate section for the eeprom, aligned to 4 bytes === */
+  .eeprom :
+  {
+    . = ALIGN(4);         /* start of the section – align to 4 bytes */
+    __eeprom_start = .;
+    KEEP(*(.eeprom))       /* capture everything from the .eeprom section */
+    KEEP(*(.eeprom.*))     /* also capture subsections .eeprom.* */
+    . = ALIGN(4);         /* end of the section – align to 4 bytes */
+    __eeprom_end = .;
+  } > FLASH_EEPROM         /* place in the FLASH_EEPROM region */
+
   /* === Separate section for the logo, aligned to 4 bytes === */
   .logo :
   {
@@ -226,7 +241,11 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  
+  .noinit (NOLOAD) :
+  {
+      *(.noinit)
+  } >RAM
+
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

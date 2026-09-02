@@ -2,21 +2,20 @@
 /**
  * targets/generic.h — baseline board pin/resource definitions.
  *
- * Extracted from main.h so that per-board variants (e.g.
- * generic_vtx_pa_rtc76401.h) can override specific pins without
- * duplicating the whole file by hand each time.
+ * No PA feature of any kind (USE_PA is never defined here) -- suitable
+ * for a board with an RTC6705 but no PA stage to control. For boards
+ * with a PA, see targets/generic_vtx_pa.h (baseline PA) or
+ * targets/generic_vtx_pa_rtc76401.h (RTC76401 external PA).
  */
 #ifndef TARGET_GENERIC_H
 #define TARGET_GENERIC_H
 
-// see adc.c - adc_init()
 typedef enum {
-  ADC_CH_RESERVED = 0, // reserved
-  ADC_CH_PA_VDET = 1, // rf pa vdet signal
-  ADC_CH_TEMP = 2, // internal temperature sensor
-  ADC_CH_VREF_INT  = 3, // internal VREFINT
-  ADC_CH_COUNT
-} adc_ch_t;
+  ADC1_CH_RESERVED = 0,
+  ADC1_CH_TEMP,
+  ADC1_CH_VREF_INT,
+  ADC1_CH_COUNT
+} adc1_ch_t;
 
 #define LED_STATE_Pin LL_GPIO_PIN_6
 #define LED_STATE_GPIO_Port GPIOC
@@ -40,7 +39,7 @@ typedef enum {
 #define COMP3_OUT_SYNC_EXT_TRIGGER_GPIO_Port GPIOB
 
 //
-// VTX + PA support
+// VTX support (RTC6705, no PA)
 //
 
 // RTC6705 is driven by software, but using the same pins that would be used if it was driven in hardware.
@@ -64,9 +63,7 @@ typedef enum {
 #define ADC_RESERVED_Pin LL_GPIO_PIN_1
 #define ADC_RESERVED_GPIO_Port GPIOB
 #define ADC_RESERVED_Channel LL_ADC_CHANNEL_12
-#define ADC_PA_VDET_Pin LL_GPIO_PIN_11
-#define ADC_PA_VDET_GPIO_Port GPIOB
-#define ADC_PA_VDET_Channel LL_ADC_CHANNEL_14
+#define ADC_RESERVED_INSTANCE ADC_INSTANCE_1
 
 //
 // Reserved pins for future features
@@ -87,10 +84,6 @@ typedef enum {
 #define FDCAN1_TX_GPIO_Port GPIOB
 #define FDCAN1_RX_Pin LL_GPIO_PIN_8
 #define FDCAN1_RX_GPIO_Port GPIOB
-
-// If RF PA VBIAS is expanded, then DAC1_OUT1 can be used to control the VBIAS voltage.
-#define RF_VBIAS_DAC1_OUT2_Pin LL_GPIO_PIN_5
-#define RF_VBIAS_DAC1_OUT2_GPIO_Port GPIOA
 
 // USER_KEY only used in GPIO init code, currently only used by developers.
 #define USER_KEY_Pin LL_GPIO_PIN_13

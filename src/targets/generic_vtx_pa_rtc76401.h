@@ -5,28 +5,66 @@
  *
  * Differences from targets/generic.h:
  *   - ADC_PA_VDET moves from PB11 to PA4 (RTC76401 pin 19, VPD).
- *     PA4 = ADC2_IN17, confirmed -- NOT reachable from ADC1. adc.c handles
- *     this: on this target, ADC_CH_PA_VDET is read via a dedicated ADC2
- *     single-channel DMA path (see adc2_vdet_init() in adc.c) instead of
- *     ADC1's regular sequence.
+ *     PA4 = ADC2_IN17, confirmed -- NOT reachable from ADC1. adc.c brings
+ *     up ADC2 whenever ADC2_NEEDED is derived true (see main.h, right
+ *     after it includes this file), which it is here since
+ *     ADC_PA_VDET_INSTANCE is ADC_INSTANCE_2.
  *   - PB11 is unconnected on this board -- ADC_RESERVED already covers
  *     "unused analog input" duties, PB11 doesn't need its own entry.
  *   - New PA_ON_Pin/PA_ON_GPIO_Port: RTC76401 VREF enable (PB10), a fast
  *     binary switch per the RTC76401 datasheet -- NOT a PWM/analog control.
- *     Named PA_ON_* (not RTC76401-specific) to match the existing
- *     #ifdef PA_ON_GPIO_Port convention already present in rf_pa.c.
+ *     rf_pa.c gates its use on #if defined(PA_RTC76401).
  */
 #ifndef TARGET_GENERIC_VTX_PA_RTC76401_H
 #define TARGET_GENERIC_VTX_PA_RTC76401_H
 
-// see adc.c - adc_init()
+/* Feature flags. Downstream code (adc.c, rf_pa.c, ...) gates on these,
+ * never on a target/board name -- see targets/target.h.
+ *   PA_RTC76401 -- this board's specific PA type: RTC76401 external PA,
+ *                  DAC1_OUT2 bias into RTC6705's PAOUT1, separate enable
+ *                  GPIO (PA_ON_*), VPD detector on its own ADC.
+ *   USE_PA      -- this board has *some* PA needing bias/enable/detector
+ *                  control. Set alongside every concrete PA feature. */
+#define PA_RTC76401
+#define USE_PA
+
+/* rf_pa.c's DAC-bias PID loop gains, operating on a VDET deviation in mV.
+ * Unvalidated placeholders -- tune on the bench against this board's
+ * actual bias/detector circuit once detector[] targets are populated in
+ * targets/generic_vtx_pa_rtc76401_power.c */
+#define PA_CONTROL_Kp        0.6f
+#define PA_CONTROL_Ki        0.05f
+#define PA_CONTROL_Kd        0.0f
+#define PA_CONTROL_OFFSET_MV 0u
+
+/* Hard bounds on what the closed loop is ever allowed to command. MIN
+ * matches the lowest DAC value bench-confirmed safe WITH the boost stage
+ * on (2800mV, ~790mA total, within a 500mA-1A supply's budget) -- the
+ * loop can never ask for anything below what's actually been validated,
+ * regardless of gains or how wrong a detector[] target turns out to be.
+ * MAX is VDD (Q2 off). I_CLAMP is an unvalidated placeholder bounding
+ * the integral term's own contribution -- tune alongside the gains. */
+#define PA_CONTROL_MV_MIN     2800u
+#define PA_CONTROL_MV_MAX     3300u
+#define PA_CONTROL_I_CLAMP_MV 300.0f
+
+/* Q2 (P-channel, gate injection into RTC6705's PAOUT1) is INVERTED --
+ * lower DAC mV = more conduction = more RF output. Bench-confirmed
+ * repeatedly this session (current-draw sweeps, the runaway incident).
+ * Do not change without new bench evidence. */
+#define PA_DAC_SIGN 1.0f
+
 typedef enum {
-  ADC_CH_RESERVED = 0, // reserved
-  ADC_CH_PA_VDET = 1, // RTC76401 VPD (pin 19) via PA4
-  ADC_CH_TEMP = 2, // internal temperature sensor
-  ADC_CH_VREF_INT  = 3, // internal VREFINT
-  ADC_CH_COUNT
-} adc_ch_t;
+  ADC1_CH_RESERVED = 0,
+  ADC1_CH_TEMP,
+  ADC1_CH_VREF_INT,
+  ADC1_CH_COUNT
+} adc1_ch_t;
+
+typedef enum {
+  ADC2_CH_PA_VDET = 0,
+  ADC2_CH_COUNT
+} adc2_ch_t;
 
 #define LED_STATE_Pin LL_GPIO_PIN_6
 #define LED_STATE_GPIO_Port GPIOC
@@ -64,11 +102,13 @@ typedef enum {
 #define ADC_RESERVED_Pin LL_GPIO_PIN_1
 #define ADC_RESERVED_GPIO_Port GPIOB
 #define ADC_RESERVED_Channel LL_ADC_CHANNEL_12
+#define ADC_RESERVED_INSTANCE ADC_INSTANCE_1
 
-/* VPD on PA4 -- RTC76401 pin 19. ADC2_IN17 (confirmed), see adc.c. */
+/* VPD on PA4 -- RTC76401 pin 19. ADC2_IN17 */
 #define ADC_PA_VDET_Pin LL_GPIO_PIN_4
 #define ADC_PA_VDET_GPIO_Port GPIOA
 #define ADC_PA_VDET_Channel LL_ADC_CHANNEL_17
+#define ADC_PA_VDET_INSTANCE  ADC_INSTANCE_2
 
 //
 // Reserved pins for future features
@@ -89,9 +129,6 @@ typedef enum {
 #define RF_VBIAS_DAC1_OUT2_Pin LL_GPIO_PIN_5
 #define RF_VBIAS_DAC1_OUT2_GPIO_Port GPIOA
 
-/* RTC76401 VREF enable (PB10) -- fast binary switch, not PWM/analog.
- * See rf_pa.c: guarded with #ifdef PA_ON_GPIO_Port, so builds against
- * targets/generic.h (no external PA stage) still compile untouched. */
 #define PA_ON_Pin LL_GPIO_PIN_10
 #define PA_ON_GPIO_Port GPIOB
 

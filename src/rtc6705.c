@@ -103,10 +103,6 @@ static void rtc6705_write_reg(uint8_t addr4, uint32_t data20);
 static uint32_t rtc6705_read_reg(uint8_t addr4);
 static bool rtc6705_detect(void);
 
-__attribute__((weak)) void rtc6705_hook_ext_pa_enable(bool on)
-{
-    rf_pa_enable(on);
-}
 __attribute__((weak)) void rtc6705_hook_delay_us(uint32_t us)
 {
     uint32_t wait_loop_index = (us * (SystemCoreClock / (1000000u * 2u)));
@@ -347,6 +343,15 @@ void rtc6705_set_power(rtc6705_power_t level)
 }
 
 /**
+ * @brief Current PA5G_PW[1:0] level, decoded from the same g_reg7_cached
+ * value rtc6705_set_power() already maintains -- no extra register read.
+ */
+rtc6705_power_t rtc6705_get_power(void)
+{
+    return (rtc6705_power_t)((g_reg7_cached & REG7_PA5G_PW_MASK) >> REG7_PA5G_PW_SHIFT);
+}
+
+/**
  * @brief Compute and program synthesizer for requested frequency.
  * @param freq_mhz desired RF in MHz (e.g., 5865 for 5.865 GHz).
  * @return actually programmed frequency in MHz (quantized to 40 kHz steps).
@@ -381,7 +386,9 @@ uint32_t rtc6705_set_frequency(uint32_t freq_mhz)
     }
 
     // Gate external PA while (re)programming to avoid OOB emissions
-    rtc6705_hook_ext_pa_enable(false);
+#if defined(USE_PA)
+    rf_pa_disable();
+#endif
 
     // Ensure R is set (write every time is fine, but it's static; ok to re-write)
     rtc6705_write_reg(RTC6705_REG_SYN_A, (RTC6705_R_DIV & SYNA_R_MASK));
@@ -398,8 +405,12 @@ uint32_t rtc6705_set_frequency(uint32_t freq_mhz)
     // Wait for state stability (proxy for lock/STBY) before enabling external PA
     rtc6705_wait_state_stable(RTC6705_LOCK_STABLE_US, RTC6705_LOCK_WAIT_TIMEOUT_US);
 
-    // Re-enable external PA
-    rtc6705_hook_ext_pa_enable(true);
+    // Restore external PA to whatever state was last commanded (may be
+    // disabled, e.g. before any MSP_SET_VTX_CONFIG has been received) --
+    // NOT an unconditional re-enable.
+#if defined(USE_PA)
+    rf_pa_restore();
+#endif
 
     g_freq_mhz_last = freq_mhz;
 

@@ -5,14 +5,7 @@
 #ifndef MSP_DISPLAYPORT_H
 #define MSP_DISPLAYPORT_H
 #include <stdint.h>
-typedef enum
-{
-  MSP_OWNER_UART = 0x00,
-  MSP_OWNER_USB = 0x01,
-  MSP_OWNER_MAX = 0xFF
-} msp_owner_t;
 
-void msp_displayport_init(void);
-void msp_loop_process(void);
+bool msp_displayport_handle_msp(uint8_t owner, uint16_t msp_cmd, uint16_t data_size, const uint8_t *payload);
 
 #endif //MSP_DISPLAYPORT_H
