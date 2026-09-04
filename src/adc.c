@@ -15,20 +15,12 @@
 static const uint32_t g_adc_reg_rank[ADC_RANK_TABLE_LEN] = {
     LL_ADC_REG_RANK_1, LL_ADC_REG_RANK_2, LL_ADC_REG_RANK_3, LL_ADC_REG_RANK_4,
 };
-static const uint32_t g_adc_inj_rank[ADC_RANK_TABLE_LEN] = {
-    LL_ADC_INJ_RANK_1, LL_ADC_INJ_RANK_2, LL_ADC_INJ_RANK_3, LL_ADC_INJ_RANK_4,
-};
+
 static const uint32_t g_adc_reg_seq_len[ADC_RANK_TABLE_LEN] = {
     LL_ADC_REG_SEQ_SCAN_DISABLE,        // 1 channel
     LL_ADC_REG_SEQ_SCAN_ENABLE_2RANKS,
     LL_ADC_REG_SEQ_SCAN_ENABLE_3RANKS,
     LL_ADC_REG_SEQ_SCAN_ENABLE_4RANKS,
-};
-static const uint32_t g_adc_inj_seq_len[ADC_RANK_TABLE_LEN] = {
-    LL_ADC_INJ_SEQ_SCAN_DISABLE,        // 1 channel
-    LL_ADC_INJ_SEQ_SCAN_ENABLE_2RANKS,
-    LL_ADC_INJ_SEQ_SCAN_ENABLE_3RANKS,
-    LL_ADC_INJ_SEQ_SCAN_ENABLE_4RANKS,
 };
 
 static volatile uint16_t g_adc1_dma_buf[ADC1_CH_COUNT];
@@ -249,12 +241,13 @@ void adc_init(void)
     ADC_CommonInitStruct.CommonClock = LL_ADC_CLOCK_SYNC_PCLK_DIV4;
     ADC_CommonInitStruct.Multimode = LL_ADC_MULTI_INDEPENDENT;
     LL_ADC_CommonInit(__LL_ADC_COMMON_INSTANCE(ADC1), &ADC_CommonInitStruct);
-    ADC_INJ_InitStruct.TriggerSource = LL_ADC_INJ_TRIG_SOFTWARE;
-    ADC_INJ_InitStruct.SequencerLength = g_adc_inj_seq_len[ADC1_CH_COUNT - 1];
-    ADC_INJ_InitStruct.SequencerDiscont = LL_ADC_INJ_SEQ_DISCONT_DISABLE;
-    ADC_INJ_InitStruct.TrigAuto = LL_ADC_INJ_TRIG_FROM_GRP_REGULAR;
+    ADC_INJ_InitStruct.TriggerSource = LL_ADC_INJ_TRIG_EXT_TIM2_CH1;
+    ADC_INJ_InitStruct.SequencerLength = LL_ADC_INJ_SEQ_SCAN_DISABLE;
+    ADC_INJ_InitStruct.SequencerDiscont = LL_ADC_INJ_SEQ_DISCONT_1RANK;
+    ADC_INJ_InitStruct.TrigAuto = LL_ADC_INJ_TRIG_INDEPENDENT;
     LL_ADC_INJ_Init(ADC1, &ADC_INJ_InitStruct);
     LL_ADC_INJ_SetQueueMode(ADC1, LL_ADC_INJ_QUEUE_DISABLE);
+    LL_ADC_INJ_SetTriggerEdge(ADC1, LL_ADC_INJ_TRIG_EXT_FALLING);
 
     /* Disable ADC deep power down (enabled by default after reset state) */
     LL_ADC_DisableDeepPowerDown(ADC1);
@@ -290,9 +283,6 @@ void adc_init(void)
     LL_ADC_SetChannelSamplingTime(ADC1, ADC_RESERVED_Channel, LL_ADC_SAMPLINGTIME_92CYCLES_5);
     LL_ADC_SetChannelSingleDiff(ADC1, ADC_RESERVED_Channel, LL_ADC_SINGLE_ENDED);
 
-    LL_ADC_INJ_SetSequencerRanks(ADC1, g_adc_inj_rank[adc1_rank_idx], ADC_RESERVED_Channel);
-    LL_ADC_SetChannelSamplingTime(ADC1, ADC_RESERVED_Channel, LL_ADC_SAMPLINGTIME_92CYCLES_5);
-    LL_ADC_SetChannelSingleDiff(ADC1, ADC_RESERVED_Channel, LL_ADC_SINGLE_ENDED);
     adc1_rank_idx++;
 #endif
 
@@ -301,9 +291,6 @@ void adc_init(void)
     LL_ADC_SetChannelSamplingTime(ADC1, ADC_NTC_Channel, LL_ADC_SAMPLINGTIME_92CYCLES_5);
     LL_ADC_SetChannelSingleDiff(ADC1, ADC_NTC_Channel, LL_ADC_SINGLE_ENDED);
 
-    LL_ADC_INJ_SetSequencerRanks(ADC1, g_adc_inj_rank[adc1_rank_idx], ADC_NTC_Channel);
-    LL_ADC_SetChannelSamplingTime(ADC1, ADC_NTC_Channel, LL_ADC_SAMPLINGTIME_92CYCLES_5);
-    LL_ADC_SetChannelSingleDiff(ADC1, ADC_NTC_Channel, LL_ADC_SINGLE_ENDED);
     adc1_rank_idx++;
 #endif
 
@@ -312,9 +299,6 @@ void adc_init(void)
     LL_ADC_SetChannelSamplingTime(ADC1, ADC_PA_VDET_Channel, LL_ADC_SAMPLINGTIME_92CYCLES_5);
     LL_ADC_SetChannelSingleDiff(ADC1, ADC_PA_VDET_Channel, LL_ADC_SINGLE_ENDED);
 
-    LL_ADC_INJ_SetSequencerRanks(ADC1, g_adc_inj_rank[adc1_rank_idx], ADC_PA_VDET_Channel);
-    LL_ADC_SetChannelSamplingTime(ADC1, ADC_PA_VDET_Channel, LL_ADC_SAMPLINGTIME_92CYCLES_5);
-    LL_ADC_SetChannelSingleDiff(ADC1, ADC_PA_VDET_Channel, LL_ADC_SINGLE_ENDED);
     adc1_rank_idx++;
 #endif
 
@@ -324,10 +308,6 @@ void adc_init(void)
     LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_TEMPSENSOR_ADC1, LL_ADC_SINGLE_ENDED);
     LL_ADC_SetCommonPathInternalCh(__LL_ADC_COMMON_INSTANCE(ADC1), LL_ADC_PATH_INTERNAL_TEMPSENSOR | LL_ADC_PATH_INTERNAL_VREFINT);
 
-    /** Configure Injected Channel */
-    LL_ADC_INJ_SetSequencerRanks(ADC1, g_adc_inj_rank[adc1_rank_idx], LL_ADC_CHANNEL_TEMPSENSOR_ADC1);
-    LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_TEMPSENSOR_ADC1, LL_ADC_SAMPLINGTIME_247CYCLES_5);
-    LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_TEMPSENSOR_ADC1, LL_ADC_SINGLE_ENDED);
     adc1_rank_idx++;
 
     /** Configure Regular Channel */
@@ -336,13 +316,12 @@ void adc_init(void)
     LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_VREFINT, LL_ADC_SINGLE_ENDED);
 
     /** Configure Injected Channel */
-    LL_ADC_INJ_SetSequencerRanks(ADC1, g_adc_inj_rank[adc1_rank_idx], LL_ADC_CHANNEL_VREFINT);
-    LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_VREFINT, LL_ADC_SAMPLINGTIME_247CYCLES_5);
-    LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_VREFINT, LL_ADC_SINGLE_ENDED);
+    LL_ADC_INJ_SetSequencerRanks(ADC1, LL_ADC_INJ_RANK_1, LL_ADC_CHANNEL_3);
+    LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_3, LL_ADC_SAMPLINGTIME_12CYCLES_5);
+    LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_3, LL_ADC_SINGLE_ENDED);
     adc1_rank_idx++;
 
-
-    NVIC_SetPriority(DMA1_Channel4_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    NVIC_SetPriority(DMA1_Channel4_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
     NVIC_EnableIRQ(DMA1_Channel4_IRQn);
 
     /* Make sure ADC is disabled before configuration */
@@ -371,6 +350,7 @@ void adc_init(void)
     for (volatile uint32_t i = 0; i < 2000; ++i) { __NOP(); }
 
     LL_ADC_REG_StartConversion(ADC1);
+    LL_ADC_INJ_StartConversion(ADC1);
 
 #if defined(ADC2_NEEDED)
     adc2_init();
