@@ -126,3 +126,56 @@ int update_font_symbol_write(uint8_t char_index, const uint8_t *data_64bytes, si
 
     return UPDATE_FONT_OK;
 }
+
+int update_font_symbol_write_bulk(uint8_t char_index, const uint8_t *data_64bytes, size_t data_size)
+{
+    if (data_size != FONT_CHARS_SIZE || data_64bytes == NULL) return UPDATE_FONT_ERR_INVALID_SIZE;
+
+    uint32_t char_offset = char_index * FONT_CHARS_SIZE;
+    if (char_offset + FONT_CHARS_SIZE > FLASH_FONT_SIZE) return UPDATE_FONT_ERR_OUT_OF_RANGE;
+
+    // Address of the char in flash
+    uint32_t char_flash_addr = FLASH_FONT_ADDRESS + char_offset;
+
+    // Determine the base address of the flash page where the symbol is located
+    uint32_t page_start_addr = char_flash_addr & ~(FLASH_PAGE_SIZE - 1);
+
+   // Buffer for copying the font char
+    uint64_t font_buffer[FONT_CHARS_SIZE/8]; 
+
+    // Copy the font char into the char buffer
+    memcpy(font_buffer, data_64bytes, FONT_CHARS_SIZE);
+
+    // Unlocking flash memory
+    HAL_StatusTypeDef status = HAL_FLASH_Unlock();
+    if (status != HAL_OK) return UPDATE_FONT_ERR_FLASH_UNLOCK;
+
+   // Erase the flash page if char is the first char in the page
+    if (char_flash_addr == page_start_addr) {
+      FLASH_EraseInitTypeDef eraseInitStruct;
+      uint32_t sectorError = 0;
+      eraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
+      eraseInitStruct.Banks = FLASH_BANK_NUMBER(FLASH_FONT_ADDRESS);
+      eraseInitStruct.Page = (page_start_addr - FLASH_BANK1_BASE) / FLASH_PAGE_SIZE;
+      eraseInitStruct.NbPages = 1;
+      status = HAL_FLASHEx_Erase(&eraseInitStruct, &sectorError);
+      if (status != HAL_OK) {
+          HAL_FLASH_Lock();
+          return UPDATE_FONT_ERR_FLASH_ERASE;
+      }
+    }
+   
+    // Write the font char
+    uint32_t addr = char_flash_addr;
+    for (uint32_t i = 0; i < FONT_CHARS_SIZE/8; i++) {
+        status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr, font_buffer[i]);
+        if (status != HAL_OK) {
+            HAL_FLASH_Lock();
+            return UPDATE_FONT_ERR_FLASH_WRITE;
+        }
+        addr += 8;
+    }
+    HAL_FLASH_Lock();
+
+    return UPDATE_FONT_OK;
+}
