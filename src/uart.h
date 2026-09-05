@@ -9,7 +9,12 @@
 
 void uart1_init(void);
 void uart1_dma_rx_start(void);
-bool uart_rx_ring_get(uint8_t *data);
+bool uart1_rx_ring_get(uint8_t *data);
 void uart1_tx_dma(uint8_t *data, uint32_t len);
+
+void uart3_init(void);
+void uart3_dma_rx_start(void);
+bool uart3_rx_ring_get(uint8_t *data);
+void uart3_tx_dma(uint8_t *data, uint32_t len);
 
 #endif //UART_H

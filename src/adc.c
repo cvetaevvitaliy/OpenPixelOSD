@@ -71,20 +71,17 @@ static void adc2_init(void)
     adc2_ch_count++;
 #endif
 
-    /* DMA1_Channel5 -- confirmed free: DMA1 channels 1/2/6 are used by
-     * tim.c/dac.c/video_gen.c, DMA1_Channel3 by dma.c (mem2mem), DMA1_4
-     * by ADC1 below, DMA2_1/2 by uart.c. */
-    LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_5, LL_DMAMUX_REQ_ADC2);
-    LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_5, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-    LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_5, LL_DMA_PRIORITY_LOW);
-    LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_5, LL_DMA_MODE_CIRCULAR);
-    LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_5, LL_DMA_PERIPH_NOINCREMENT);
-    LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_5, LL_DMA_MEMORY_INCREMENT);
-    LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_5, LL_DMA_PDATAALIGN_HALFWORD);
-    LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_5, LL_DMA_MDATAALIGN_HALFWORD);
-    LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_5, (uint32_t)&ADC2->DR);
-    LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_5, (uint32_t)g_adc2_dma_buf);
-    LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_5, adc2_ch_count);
+    LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_3, LL_DMAMUX_REQ_ADC2);
+    LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+    LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PRIORITY_LOW);
+    LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MODE_CIRCULAR);
+    LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PERIPH_NOINCREMENT);
+    LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MEMORY_INCREMENT);
+    LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PDATAALIGN_HALFWORD);
+    LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MDATAALIGN_HALFWORD);
+    LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_3, (uint32_t)&ADC2->DR);
+    LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_3, (uint32_t)g_adc2_dma_buf);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, adc2_ch_count);
 
     ADC_InitStruct.Resolution = LL_ADC_RESOLUTION_12B;
     ADC_InitStruct.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
@@ -130,8 +127,8 @@ static void adc2_init(void)
     adc2_rank_idx++;
 #endif
 
-    NVIC_SetPriority(DMA1_Channel5_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 0));
-    NVIC_EnableIRQ(DMA1_Channel5_IRQn);
+    NVIC_SetPriority(DMA1_Channel3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 0));
+    NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
     if (LL_ADC_IsEnabled(ADC2)) {
         LL_ADC_Disable(ADC2);
@@ -146,7 +143,7 @@ static void adc2_init(void)
     while (LL_ADC_IsCalibrationOnGoing(ADC2)) { /* wait */ }
     for (volatile uint32_t i = 0; i < 2000; ++i) { __NOP(); }
 
-    LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_5);
+    LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
 
     LL_ADC_Enable(ADC2);
     while (!LL_ADC_IsActiveFlag_ADRDY(ADC2)) { /* wait */ }
@@ -158,8 +155,8 @@ void adc2_vdet_debug_status(bool *adc_enabled, bool *adc_ready, bool *dma_enable
 {
     *adc_enabled = LL_ADC_IsEnabled(ADC2);
     *adc_ready = LL_ADC_IsActiveFlag_ADRDY(ADC2);
-    *dma_enabled = LL_DMA_IsEnabledChannel(DMA1, LL_DMA_CHANNEL_5);
-    *dma_remaining = LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_5);
+    *dma_enabled = LL_DMA_IsEnabledChannel(DMA1, LL_DMA_CHANNEL_3);
+    *dma_remaining = LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_3);
 }
 #endif // ADC2_NEEDED
 
