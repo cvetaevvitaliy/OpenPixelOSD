@@ -26,7 +26,7 @@ void SystemClock_Config(void)
 
 #if defined(BUILD_VARIANT_NO_OSC)
     LL_RCC_HSI_SetCalibTrimming(64);
-    LL_RCC_HSI48_Enable();
+    LL_RCC_HSI_Enable();
     /* Wait till HSI48 is ready */
     while(LL_RCC_HSI48_IsReady() != 1)
     {
@@ -38,6 +38,12 @@ void SystemClock_Config(void)
     {
     }
 #endif
+
+LL_RCC_HSI48_Enable();
+    /* Wait till HSI48 is ready */
+    while(LL_RCC_HSI48_IsReady() != 1)
+    {
+    }
 
 #if defined(BUILD_VARIANT_NO_OSC)
     LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_4, 85, LL_RCC_PLLR_DIV_2);
