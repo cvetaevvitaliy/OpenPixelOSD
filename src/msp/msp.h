@@ -13,6 +13,14 @@
 #define MSP_PORT_BUFF_SIZE    192
 #define MSP_V2_FRAME_ID       255
 
+#define MSP_BOXID_CAMERA_CONTROL_1    32
+#define MSP_BOXID_CAMERA_CONTROL_2    33
+#define MSP_BOXID_CAMERA_CONTROL_3    34
+#define MSP_BOXID_USER1               40
+#define MSP_BOXID_USER2               41
+#define MSP_BOXID_USER3               42
+#define MSP_BOXID_USER4               43
+
 #define MSP_PACALTABLE                  0x4800
 #define MSP_SET_PACALTABLE              0x4801
 #define MSP_PACALIBRATION                0x4802
