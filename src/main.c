@@ -13,7 +13,8 @@
 
 #include "flash.h"
 #include "led.h"
-
+#include "settings.h"
+#include "settingsMenu.h"
 #if defined(USE_VTX)
 #include "rtc6705.h"
 #include "rf_pa.h"
@@ -26,7 +27,7 @@
 #endif
 
 #define LED_BLINK_INTERVAL 100 // milliseconds
-#define DEBUG_LOOP_INTERVAL 100 // milliseconds
+#define DEBUG_LOOP_INTERVAL 1000 // milliseconds
 #define LOGO_TIMEOUT_MS 4000 // 4 seconds
 
 void led_blink(void);
@@ -89,7 +90,6 @@ void debug_print_loop(void)
 #if defined(BUILD_VARIANT_BLINKY)
 int main (void)
 {
-    check_bootloader();
     HAL_Init();
     SystemClock_Config();
     gpio_init();
@@ -103,6 +103,7 @@ int main (void)
 #if !defined(BUILD_VARIANT_BLINKY)
 int main (void)
 {
+    check_bootloader();
     HAL_Init();
     SystemClock_Config();
 #ifdef USE_SWO
@@ -118,6 +119,7 @@ int main (void)
     led_init();
     adc_init();
     flash_init();              // before anything reads/writes EEPROM
+    settings_load();
 #if defined(USE_PA)
     vtx_power_levels_init();   // after flash_init(), before rf_pa_init()/first MSP config
 #endif
@@ -159,6 +161,7 @@ int main (void)
         debug_print_loop();
         logo_timeout_check();
         video_sync_loop();
+        msp_menu();
 
 #if defined(USE_VTX) && defined(USE_PA)
         rf_pa_loop(field_edge_flag);
