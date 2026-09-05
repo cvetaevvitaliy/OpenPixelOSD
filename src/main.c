@@ -37,6 +37,41 @@ extern uint16_t sync_voltage_low;
 #if defined(USE_VTX)
 extern double rf_detector;
 #endif
+
+#define BOOTLOADER_ADDR  0x1FFF0000U
+typedef void (*funcPtr)(void);
+
+void check_bootloader(void) 
+{
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
+  LL_PWR_EnableBkUpAccess();
+
+  if(LL_RTC_BKP_GetRegister(RTC, LL_RTC_BKP_DR1) == MSP_REBOOT_BOOTLOADER_ROM) {
+    LL_RTC_BKP_SetRegister(RTC, LL_RTC_BKP_DR1, MSP_REBOOT_FIRMWARE);
+    __disable_irq();
+
+    // 2. SysTick stoppen
+    SysTick->CTRL = 0;
+    SysTick->LOAD = 0;
+    SysTick->VAL  = 0;
+
+    LL_RCC_DeInit();
+    LL_PWR_DisableBkUpAccess();
+    LL_SYSCFG_SetRemapMemory(LL_SYSCFG_REMAP_SYSTEMFLASH);
+
+
+    SCB->VTOR = BOOTLOADER_ADDR;
+
+    uint32_t bootloaderStack = *(uint32_t *)(BOOTLOADER_ADDR);
+    __set_MSP(bootloaderStack);
+
+    uint32_t bootloaderEntryAddr = *(uint32_t *)(BOOTLOADER_ADDR + 4);
+    funcPtr bootloaderEntry = (funcPtr)bootloaderEntryAddr;
+
+    bootloaderEntry();
+  }
+}
+
 void debug_print_loop(void)
 {
     static uint32_t last_tick = 0;
@@ -54,6 +89,7 @@ void debug_print_loop(void)
 #if defined(BUILD_VARIANT_BLINKY)
 int main (void)
 {
+    check_bootloader();
     HAL_Init();
     SystemClock_Config();
     gpio_init();
