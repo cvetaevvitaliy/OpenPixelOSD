@@ -368,7 +368,7 @@ void msp_send_command(uint8_t owner, uint8_t command)
 EXEC_RAM void msp_loop_process(void)
 {
     uint8_t byte;
-    while (uart_rx_ring_get(&byte)) {
+    while (uart1_rx_ring_get(&byte)) {
         msp_process_received_data(&msp_uart, byte);
     }
     while (usb_uart_read_byte(&byte)) {

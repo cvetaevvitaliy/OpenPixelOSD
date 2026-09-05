@@ -4,6 +4,27 @@
  */
 #include "main.h"
 
+/*DMA allocation
+
+DMA1 CHANNEL_1    OSD generator OPAMP1 control/status register
+DMA1 CHANNEL_2
+DMA1 CHANNEL_3    ADC2 g_adc2_dma_buf
+DMA1 CHANNEL_4    ADC1 g_adc1_dma_buf
+DMA1 CHANNEL_5    Video generator DAC3 data holding register
+DMA1 CHANNEL_6    Video generator TIM17 sync pulse timing
+DMA1 CHANNEL_7
+DMA1 CHANNEL_8    HRTIM1 color carrier generator
+
+DMA2 CHANNEL_1    OSD generator DAC3 data holding register
+DMA2 CHANNEL_2    USART1 TX
+DMA2 CHANNEL_3    USART1 RX
+DMA2 CHANNEL_4    USART3 TX
+DMA2 CHANNEL_5    TIM8 RGBLED
+DMA2 CHANNEL_6    USART3 RX
+DMA2 CHANNEL_7
+DMA2 CHANNEL_8
+*/
+
 void dma_init(void)
 {
 
@@ -12,48 +33,5 @@ void dma_init(void)
   LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMAMUX1);
   LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
   LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA2);
-
-  /* Configure DMA request MEMTOMEM_DMA1_Channel3 */
-
-  /* Set request number */
-  LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_3, LL_DMAMUX_REQ_MEM2MEM);
-
-  /* Set transfer direction */
-  LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3, LL_DMA_DIRECTION_MEMORY_TO_MEMORY);
-
-  /* Set priority level */
-  LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PRIORITY_LOW);
-
-  /* Set DMA mode */
-  LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MODE_NORMAL);
-
-  /* Set peripheral increment mode */
-  LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PERIPH_INCREMENT);
-
-  /* Set memory increment mode */
-  LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MEMORY_INCREMENT);
-
-  /* Set peripheral data width */
-  LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PDATAALIGN_BYTE);
-
-  /* Set memory data width */
-  LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MDATAALIGN_BYTE);
-
-  /* DMA interrupt init */
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  NVIC_SetPriority(DMA1_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-  /* DMA1_Channel2_IRQn interrupt configuration */
-  NVIC_SetPriority(DMA1_Channel2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  NVIC_EnableIRQ(DMA1_Channel2_IRQn);
-  /* DMA1_Channel6_IRQn interrupt configuration */
-  NVIC_SetPriority(DMA1_Channel6_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  NVIC_EnableIRQ(DMA1_Channel6_IRQn);
-  /* DMA2_Channel1_IRQn interrupt configuration */
-  NVIC_SetPriority(DMA2_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  NVIC_EnableIRQ(DMA2_Channel1_IRQn);
-  /* DMA2_Channel2_IRQn interrupt configuration */
-  NVIC_SetPriority(DMA2_Channel2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  NVIC_EnableIRQ(DMA2_Channel2_IRQn);
 
 }
