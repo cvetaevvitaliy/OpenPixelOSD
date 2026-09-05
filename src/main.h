@@ -17,11 +17,13 @@
 #include "stm32g4xx_ll_pwr.h"
 #include "stm32g4xx_ll_spi.h"
 #include "stm32g4xx_ll_tim.h"
+#include "stm32g4xx_ll_hrtim.h"
 #include "stm32g4xx_ll_usart.h"
 #include "stm32g4xx_ll_gpio.h"
 #include "stm32g4xx_ll_adc.h"
 #include "stm32g4xx_ll_rtc.h"
 #include "trace.h"
+#include "target.h"
 
 #include <stdbool.h>
 
@@ -42,11 +44,100 @@
 #define MCU_TYPE "---------"
 #endif /* MCU_TYPE */
 
+#if defined(STM32G474xx) && defined(USE_COLOR)
+#define IF_USE_COLOR(arg)                       arg
+#else
+#undef  USE_COLOR
+#define IF_USE_COLOR(...)                       { }
+#endif
+
+#if !defined(STM32G474xx) 
+#undef  USE_GRAPHICS
+#endif
+
+#if defined(USE_GRAPHICS) && defined(USE_COLOR)
+#undef USE_HD
+#define ROW_SIZE                                15
+#define COLUMN_SIZE                             32
+#define OPAMP_DELAY                             13
+#define COLOR_DELAY_PAL                         70
+#define COLOR_DELAY_NTSC                        88
+#elif defined(USE_GRAPHICS) && defined(USE_HD)
+#undef USE_HD
+#define ROW_SIZE                                15
+#define COLUMN_SIZE                             45
+#define OPAMP_DELAY                             10
+#elif defined(USE_GRAPHICS)
+#define ROW_SIZE                                15
+#define COLUMN_SIZE                             32
+#define OPAMP_DELAY                             13
+#elif defined(USE_HD) && defined(USE_COLOR)
+#define ROW_SIZE                                30
+#define COLUMN_SIZE                             40
+#define OPAMP_DELAY                             10
+#define COLOR_DELAY_PAL                         70
+#define COLOR_DELAY_NTSC                        88
+#elif defined(USE_HD)
+#define ROW_SIZE                                30
+#define COLUMN_SIZE                             45
+#define OPAMP_DELAY                             6
+#elif defined(USE_COLOR)
+#define ROW_SIZE                                15
+#define COLUMN_SIZE                             36
+#define OPAMP_DELAY                             12
+#define COLOR_DELAY_PAL                         76
+#define COLOR_DELAY_NTSC                        88
+#else
+#define ROW_SIZE                                15
+#define COLUMN_SIZE                             36
+#define OPAMP_DELAY                             16
+#endif
+
+
+// Video input 1 PA7
+#ifndef VIDEO1_INPUT_ENABLED 
+#define VIDEO1_INPUT_ENABLED                    true
+#endif
+#ifndef VIDEO1_INPUT_GAIN
+#define VIDEO1_INPUT_GAIN                       1
+#endif
+
+// Video input 2 PA3
+#ifndef VIDEO2_INPUT_ENABLED 
+#define VIDEO2_INPUT_ENABLED                    false
+#endif
+#ifndef VIDEO2_INPUT_GAIN
+#define VIDEO2_INPUT_GAIN                       1
+#endif
+
+#ifndef VIDEO_TOTAL_GAIN
+#define VIDEO_TOTAL_GAIN                        1
+#endif
+
+#define VISUAL_PICTURE_LINE_NS                  50000
+#define LINE_CENTER_NS                          31400
+
+#define NS_TO_TICKS(ns)                         (((ns) * 170UL) / 1000UL)
+#define VISUAL_PICTURE_LINE_TICKS_MAX           (NS_TO_TICKS(VISUAL_PICTURE_LINE_NS))
+#define PIXELS_PER_LINE                         (COLUMN_SIZE * 12)
+#define TIM1_AUTORELOAD                         ((uint32_t)(VISUAL_PICTURE_LINE_TICKS_MAX / PIXELS_PER_LINE) - 1)
+#define VISUAL_PICTURE_LINE_TICKS               ((TIM1_AUTORELOAD + 1) * PIXELS_PER_LINE)
+#define LINE_START_DELAY                        (NS_TO_TICKS(LINE_CENTER_NS) - (VISUAL_PICTURE_LINE_TICKS) / 2)
+
+#define BLACK_LEVEL_ADC_DELAY_NS                3300
+#define LOW_SYNC_ADC_DELAY_NS                   6000
+#define COLOR_BURST_SYNC_GATE_CLOSE_NS          2100
+#define VISIBLE_LINE_END_NS                     57000
+
 typedef enum {
   PX_BLACK = 0,
   PX_TRANSPARENT,
   PX_WHITE,
-  PX_GRAY
+  PX_GRAY,
+  PX_GREEN,
+  PX_RED,
+  PX_BLUE,
+  PX_YELLOW
 } px_t;
 
 #define ADC_INSTANCE_1 1
@@ -99,10 +190,38 @@ typedef enum {
 #define DAC12BIT_TO_MV(value)      (((uint32_t)(value) * 3300) / 4095)
 #define DAC12BIT_FROM_MV(mV)       (((uint32_t)(mV) * 4095) / 3300)
 
-#define DAC8BIT_TO_MV(value)      (((uint32_t)(value) * 3300) / 255)
-#define DAC8BIT_FROM_MV(mV)       (((uint32_t)(mV) * 255) / 3300)
 
-#define VIDE_DETECTION_MV       (DAC12BIT_TO_MV(250)) // 250 mV for video detection
+#define OPAMP1_VOUT_VIDEO_OUT_Pin               LL_GPIO_PIN_2
+#define OPAMP1_VOUT_VIDEO_OUT_GPIO_Port         GPIOA
+
+#define OPAMP1_VINPIO0_VIDEO1_IN_Pin            LL_GPIO_PIN_7
+#define OPAMP1_VINPIO0_VIDEO1_IN_GPIO_Port      GPIOA
+
+#define OPAMP1_VINPIO2_VIDEO2_IN_Pin            LL_GPIO_PIN_3
+#define OPAMP1_VINPIO2_VIDEO2_IN_GPIO_Port      GPIOA
+
+
+#define EXEC_RAM      __attribute__((section (".ccmram.text"), optimize("Ofast"))) /* exec functions from CCMRAM */
+#define CCMRAM_DATA   __attribute__((section (".ccmram.data"))) /* initialized var */
+#define CCMRAM_BSS    __attribute__((section (".ccmram.bss"))) /* uninitialized var */
+
+#define DAC12BIT_TO_MV(value)                   (((uint32_t)(value) * 3300) / 4095)
+#define DAC12BIT_FROM_MV(mV)                    (((uint32_t)(mV) * 4095) / 3300)
+
+#define DAC8BIT_TO_MV(value)                    (((uint32_t)(value) * 3300) / 255)
+#define DAC8BIT_FROM_MV(mV)                     (((uint32_t)(mV) * 255) / 3300)
+
+#define SYNC_START_MV                           300
+#define SYNC_SCAN_MIN_MV                        25
+#define SYNC_SCAN_MAX_MV                        800
+#define SYNC_SCAN_INC_MV                        25
+
+#define SYNC_LOST_FRAMES_THRESHOLD              20
+
+
+#ifndef MAX
+#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+#endif
 
 void gpio_init(void);
 void adc_init(void);
@@ -128,12 +247,13 @@ void OPAMP1_Init(void);
 void TIM1_Init(void);
 void TIM2_Init(void);
 void TIM3_Init(void);
-void TIM4_Init(void);
-void TIM8_Init(void);
 void TIM7_Init(void);
+void TIM8_Init(void);
+void TIM15_Init(void);
 void TIM17_Init(void);
+void HRTIM1_Init(void);
 
+void COMP2_Init(void);
 void COMP3_Init(void);
-void COMP4_Init(void);
 
 #endif /* __MAIN_H */

@@ -13,30 +13,25 @@ void OPAMP1_Init(void)
     LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
 
     /**OPAMP1 GPIO Configuration
-    PA1   ------> OPAMP1_VINP_SEC - NOT useed now
     PA2   ------> OPAMP1_VOUT - Video output
-    PA3   ------> OPAMP1_VINM_SEC - Video generator input
-    PA7   ------> OPAMP1_VINP - Camera Video input
+    PA3   ------> OPAMP1_VINP - Video 1 input
+    PA7   ------> OPAMP1_VINP - Video 2 input
     */
-    GPIO_InitStruct.Pin = OPAMP1_VINPIO0_GRAY_COLOR_Pin;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    LL_GPIO_Init(OPAMP1_VINPIO0_GRAY_COLOR_GPIO_Port, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = OPAMP1_VOUT_VIDEO_OUT_Pin;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
     LL_GPIO_Init(OPAMP1_VOUT_VIDEO_OUT_GPIO_Port, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = OPAMP1_VINPIO0_VIDEO_GEN_IN_Pin;
+    GPIO_InitStruct.Pin = OPAMP1_VINPIO2_VIDEO2_IN_Pin;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    LL_GPIO_Init(OPAMP1_VINPIO0_VIDEO_GEN_IN_GPIO_Port, &GPIO_InitStruct);
+    LL_GPIO_Init(OPAMP1_VINPIO2_VIDEO2_IN_GPIO_Port, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = OPAMP1_VINPIO2_VIDEO_IN_Pin;
+    GPIO_InitStruct.Pin = OPAMP1_VINPIO0_VIDEO1_IN_Pin;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    LL_GPIO_Init(OPAMP1_VINPIO2_VIDEO_IN_GPIO_Port, &GPIO_InitStruct);
+    LL_GPIO_Init(OPAMP1_VINPIO0_VIDEO1_IN_GPIO_Port, &GPIO_InitStruct);
 
     OPAMP_InitStruct.PowerMode = LL_OPAMP_POWERMODE_HIGHSPEED;
     OPAMP_InitStruct.FunctionalMode = LL_OPAMP_MODE_FOLLOWER;
