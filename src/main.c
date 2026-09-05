@@ -21,7 +21,7 @@
 #endif
 #include <stdio.h>
 
-#if defined(HIGH_RAM)
+#if defined(USE_GRAPHICS)
 #include "video_graphics.h"
 #endif
 
@@ -32,13 +32,22 @@
 void led_blink(void);
 void logo_timeout_check(void);
 
+extern volatile uint16_t sync_voltage;
+extern uint16_t sync_voltage_low;
+#if defined(USE_VTX)
+extern double rf_detector;
+#endif
 void debug_print_loop(void)
 {
     static uint32_t last_tick = 0;
 
     if ((HAL_GetTick() - last_tick) >= DEBUG_LOOP_INTERVAL) {
         last_tick = HAL_GetTick();
-        // Loop debug printf here
+        TRACE_INFO("sync V:%i bl: %i sync low:%i \n",
+          sync_voltage, 
+          (uint16_t)DAC12BIT_TO_MV(sync_levels[1] / VIDEO_TOTAL_GAIN), 
+          sync_voltage_low
+          ); // Loop debug printf here
     }
 }
 
@@ -78,7 +87,8 @@ int main (void)
 #endif
 
     video_overlay_init();
-#if defined(HIGH_RAM)
+
+#if defined(USE_GRAPHICS)
     video_graphics_init();
     video_draw_text_system_font(FONT_SYSTEM_WIDTH * 2, VIDEO_HEIGHT - FONT_SYSTEM_HEIGHT, "WAITING MSP...");
     video_graphics_draw_complete();
@@ -112,6 +122,7 @@ int main (void)
         led_blink();
         debug_print_loop();
         logo_timeout_check();
+        video_sync_loop();
 
 #if defined(USE_VTX) && defined(USE_PA)
         rf_pa_loop(field_edge_flag);
@@ -120,7 +131,7 @@ int main (void)
 
 #if 0 // TODO: remove later
 // For test only - 3D cube animation
-#if defined(HIGH_RAM)
+#if defined(USE_GRAPHICS)
         if (field_edge_flag) {
             video_draw_3d_cube_animation();
         }

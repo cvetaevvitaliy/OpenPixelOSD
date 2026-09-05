@@ -3,64 +3,116 @@
  * Copyright (C) 2025 Vitaliy N <vitaliy.nimych@gmail.com>
  */
 #include "video_graphics.h"
+#include "main.h"
 
-#if defined(HIGH_RAM)
+#if defined(USE_GRAPHICS)
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
 #include "canvas_char.h"
-#include "fonts/font_bf_default.h"
+#include "video_overlay.h"
+#include "fonts/font_betaflight.h"
+
 #include "fonts/font_system.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include "logo/logo.h"
 
 /* Tunable temporary buffer size for formatted text */
 #ifndef VIDEO_TEXT_TMP_MAX
 #define VIDEO_TEXT_TMP_MAX 256
 #endif
 
-/* From canvas_char.c */
-extern char canvas_char_map[2][ROW_SIZE][COLUMN_SIZE];
-extern uint8_t active_buffer;
+#define LOGO_OFFSET_Y       (25)
 
 uint8_t video_frame_buffer[2][VIDEO_HEIGHT][VIDEO_BYTES_PER_LINE];
 CCMRAM_DATA uint8_t active_video_buffer = 0;
+CCMRAM_DATA uint8_t paint_video_buffer = 1;
 
 void video_graphics_init(void)
 {
-    for(int active_video_buffer = 0; active_video_buffer < 1; active_video_buffer++) {
+    for(int active_video_buffer = 0; active_video_buffer < 2; active_video_buffer++) {
         video_graphics_clear_draw_buff(PX_TRANSPARENT);
     }
     active_video_buffer = 0;
+    paint_video_buffer = 1;
 }
 
 EXEC_RAM void video_graphics_clear_draw_buff(px_t color)
 {
-    uint8_t pixel_byte = ((color & 0x3) << 6) |
+  #if VIDEO_BPP == 3
+  uint8_t pixel_byte[3];
+  pixel_byte[0] = ((color & 0x7) << 5) | ((color & 0x7) << 2) |  ((color & 0x7) >> 1);
+  pixel_byte[1] = ((color & 0x7) << 7) | ((color & 0x7) << 4) |  ((color & 0x7) << 1) |  ((color & 0x7) >> 2);
+  pixel_byte[2] = ((color & 0x7) << 6) | ((color & 0x7) << 3) |  ((color & 0x7));
+
+  uint8_t* buffer = (uint8_t*)pixel_byte;
+
+  paint_video_buffer = 1 - active_video_buffer;
+
+  for(uint16_t y = 0 ; y < VIDEO_HEIGHT; y++) {
+    for(uint16_t x = 0; x< VIDEO_BYTES_PER_LINE; x++ ) {
+      video_frame_buffer[paint_video_buffer][y][x] = buffer[x % 3];
+    }
+  }
+  #else
+  uint8_t pixel_byte = ((color & 0x3) << 6) |
                          ((color & 0x3) << 4) |
                          ((color & 0x3) << 2) |
                          ((color & 0x3) << 0);
 
-    memset(video_frame_buffer[active_video_buffer], pixel_byte, sizeof(video_frame_buffer[active_video_buffer]));
+  paint_video_buffer = 1 - active_video_buffer;
+
+  memset(video_frame_buffer[paint_video_buffer], pixel_byte, sizeof(video_frame_buffer[paint_video_buffer]));
+  #endif
 }
+
 
 void video_draw_pixel(uint16_t x, uint16_t y, px_t color)
 {
     if (x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT) return;
 
-    uint8_t *byte = &video_frame_buffer[active_video_buffer][y][x >> 2];
-    uint8_t shift = 6 - ((x & 0x3) << 1);
+    const uint8_t mask = (1 << VIDEO_BPP) - 1;
 
-    *byte &= ~(0x3 << shift);
-    *byte |= ((color & 0x3) << shift);
+    uint32_t bit_index  = x * VIDEO_BPP;
+    uint32_t byte_index = bit_index >> 3;
+    uint8_t  shift      = 7 - (bit_index & 7);
+
+    uint8_t *byte = &video_frame_buffer[paint_video_buffer][y][byte_index];
+
+    #if VIDEO_BPP == 3
+    if (shift + 1U >= VIDEO_BPP) {
+    #endif 
+        uint8_t s = shift + 1 - VIDEO_BPP;
+        *byte &= ~(mask << s);
+        *byte |= ((color & mask) << s);
+        return;
+    #if VIDEO_BPP == 3
+    } else if (shift == 1) {
+      *byte &= ~0x03;
+      *byte |=  (color>>1) & 0x03;
+
+      uint8_t *byte2 = byte + 1;
+      *byte2 &= ~(0x01<<7);
+      *byte2 |=  (color & 0x01)<<7;
+    } else {
+      *byte &= ~0x01;
+      *byte |=  (color>>2) & 0x01;
+
+      uint8_t *byte2 = byte + 1;
+      *byte2 &= ~(0x03<<6);
+      *byte2 |=  (color & 0x03)<<6;
+    }
+    #endif
 }
+
 
 EXEC_RAM static inline void vg_put_px2(uint16_t x, uint16_t y, uint8_t v2)
 {
     if (x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT) return;
-    uint8_t *line = &video_frame_buffer[active_video_buffer][y][0];
+    uint8_t *line = &video_frame_buffer[paint_video_buffer][y][0];
     uint16_t byte = x >> 2;                 /* 4 pixels per byte */
     uint8_t  sub  = x & 0x3;                /* 0..3 */
     uint8_t  shift = (uint8_t)((3u - sub) * 2u);
@@ -68,62 +120,114 @@ EXEC_RAM static inline void vg_put_px2(uint16_t x, uint16_t y, uint8_t v2)
     line[byte] = (uint8_t)((line[byte] & ~mask) | ((v2 & 0x3u) << shift));
 }
 
-EXEC_RAM void video_render_canvas_from_map(void)
+static const uint8_t colorMatrix[4][16] = { {0,1,2,3,4,5,6,7,2,2,2,2,2,2,2,2},
+                                            {0,1,2,3,4,5,6,7,2,2,2,2,2,2,2,4},
+                                            {0,1,2,3,4,5,6,7,2,2,2,2,2,2,2,7},
+                                            {0,1,2,3,4,5,6,7,2,2,2,2,2,2,2,5}
+                                          };
+
+EXEC_RAM void video_draw_char_at(char ch, uint16_t x, uint16_t y, uint8_t font)
 {
-    /* Clear video frame buffer before rendering */
-    video_graphics_clear_draw_buff(PX_TRANSPARENT);
+    UNUSED(font);
+    //uint8_t fontColor[] = {PX_WHITE, PX_GREEN, PX_YELLOW, PX_RED};
+    const font_t *glyph = &font_data[(uint8_t)ch * FONT_STRIDE / sizeof(font_t)];
 
-    /* Iterate over all rows of characters in the canvas */
-    for (uint16_t map_row = 0; map_row < ROW_SIZE; map_row++) {
+    for (uint16_t glyph_row = 0; glyph_row < FONT_HEIGHT; glyph_row++) {
 
-        /* Iterate over all scan lines of the glyph */
-        for (uint16_t glyph_row = 0; glyph_row < FONT_HEIGHT; glyph_row++) {
+        uint16_t dst_y = y + glyph_row;
+        if (dst_y >= VIDEO_HEIGHT) continue;
 
-            uint16_t dst_y = (uint16_t)(map_row * FONT_HEIGHT + glyph_row);
-            if (dst_y >= VIDEO_HEIGHT) continue;
+        uint32_t row_off = (uint32_t)glyph_row * (uint32_t)BYTES_PER_ROW / sizeof(font_t);
 
-            /* Iterate over all character columns */
-            for (uint16_t col = 0; col < COLUMN_SIZE; col++) {
+        for (uint16_t gx = 0; gx < FONT_WIDTH; gx++) {
 
-                /* Get character code from canvas map buffer */
-                char ch = canvas_char_map[active_buffer][map_row][col];
+            uint16_t dst_x = x + gx;
+            if (dst_x >= VIDEO_WIDTH) continue;
 
-                /* Pointer to glyph data in font_data */
-                const uint8_t *glyph = &font_data[(uint8_t)ch * FONT_STRIDE];
+            uint32_t bitpos     = (uint32_t)gx * (uint32_t)FONT_BPP;
+            uint32_t byte_index = row_off + (gx >> 2);
+            uint32_t bit_offset = bitpos & (FONT_BPP * 4 - 1);
 
-                /* Offset to the current scanline within the glyph */
-                const uint32_t row_off = (uint32_t)glyph_row * (uint32_t)BYTES_PER_ROW;
+            font_t raw_byte = glyph[byte_index];
 
-                uint16_t dst_x = (uint16_t)(col * FONT_WIDTH);
-                if (dst_x >= VIDEO_WIDTH) continue;
+            uint8_t px2 = (font_t)((raw_byte >> (FONT_BPP * 3 - bit_offset)) & ((1<<FONT_BPP) - 1));
 
-                /* Iterate over all pixels of the glyph width */
-                for (uint16_t gx = 0; gx < FONT_WIDTH; gx++) {
-
-                    /* Bit position of this pixel in the glyph data */
-                    uint32_t bitpos     = (uint32_t)gx * (uint32_t)FONT_BPP;
-                    uint32_t byte_index = row_off + (bitpos >> 3);
-                    uint32_t bit_offset = bitpos & 0x7;
-                    uint8_t raw_byte    = glyph[byte_index];
-
-                    /* Extract 2-bit pixel (MSB-first order) */
-                    uint8_t px2 = (uint8_t)((raw_byte >> (6 - bit_offset)) & 0x03u);
-
-                    video_draw_pixel((uint16_t)(dst_x + gx), dst_y, (px_t)px2);
-                }
-            }
+            video_draw_pixel(dst_x, dst_y, (px_t)colorMatrix[font][px2]);
         }
     }
-    video_graphics_draw_complete();
+}
+
+
+void video_graphics_draw_logo()
+{
+  #ifdef USE_COLOR
+  uint8_t colorMatrix[] = {6,1,7,5};
+  #else
+  uint8_t colorMatrix[] = {0,1,2,3};
+  #endif
+
+  for (uint16_t y = 0; y < LOGO_HEIGHT; y++) {
+    const uint8_t *logo_line_ptr = &logo_data[y * LOGO_ROW_BYTES];
+
+    uint16_t logoOffsetX = (PIXELS_PER_LINE -LOGO_WIDTH) / 2;
+
+    for (uint16_t x = 0; x < LOGO_WIDTH>>2; x++) {
+      uint8_t byte = logo_line_ptr[x];
+      uint8_t pixel;
+  
+      pixel = (byte >> 6) & 0x3;
+      video_draw_pixel((uint16_t)(logoOffsetX + (x<<2)), LOGO_OFFSET_Y + y, (px_t)colorMatrix[pixel]);
+
+      pixel = (byte >> 4) & 0x3;
+      video_draw_pixel((uint16_t)(logoOffsetX + (x<<2) + 1), LOGO_OFFSET_Y + y, (px_t)colorMatrix[pixel]);
+
+      pixel = (byte >> 2) & 0x3;
+      video_draw_pixel((uint16_t)(logoOffsetX + (x<<2) + 2), LOGO_OFFSET_Y + y, (px_t)colorMatrix[pixel]);
+
+      pixel = byte & 0x3;
+      video_draw_pixel((uint16_t)(logoOffsetX + (x<<2) + 3), LOGO_OFFSET_Y + y, (px_t)colorMatrix[pixel]);
+    }
+  }
+}
+
+void video_graphics_draw_test_pattern() {
+  video_draw_rectangle(50,  25, 75,  75, 0);
+  video_draw_rectangle(75,  25, 100, 75, 2);
+  video_draw_rectangle(100, 25, 125, 75, 3);
+  video_draw_rectangle(125, 25, 150, 75, 4);
+  video_draw_rectangle(150, 25, 175, 75, 5);
+  video_draw_rectangle(175, 25, 200, 75, 6);
+  video_draw_rectangle(200, 25, 225, 75, 7);
+  //video_draw_rectangle(225, 25, 250, 100, 3);
+
+  video_draw_rectangle(10,  150, 350,  200, PX_BLACK);
+  video_draw_rectangle(10,  225, 350,  250, PX_WHITE);
+  for(uint8_t x=0; x<5; x++) {
+    video_draw_rectangle(30  + x * 10, 125, 35  + x * 10,  250, PX_WHITE);
+    video_draw_rectangle(80  + x * 10, 125, 85  + x * 10,  150, PX_WHITE);
+    video_draw_rectangle(130 + x * 10, 125, 135 + x * 10,  150, PX_WHITE);
+    video_draw_rectangle(180 + x * 10, 125, 185 + x * 10,  150, PX_WHITE);
+    video_draw_rectangle(230 + x * 10, 125, 235 + x * 10,  150, PX_WHITE);
+    video_draw_rectangle(80  + x * 10, 150, 85  + x * 10,  250, PX_YELLOW);
+    video_draw_rectangle(130 + x * 10, 150, 135 + x * 10,  250, PX_GREEN);
+    video_draw_rectangle(180 + x * 10, 150, 185 + x * 10,  250, PX_RED);
+    video_draw_rectangle(230 + x * 10, 150, 235 + x * 10,  250, PX_BLUE);
+    
+  }
 }
 
 EXEC_RAM void video_graphics_draw_complete(void)
 {
-    active_video_buffer ^= 1;
-    video_graphics_clear_draw_buff(PX_TRANSPARENT);
+    if (show_test_pattern) {
+      video_graphics_draw_test_pattern();
+    } else if (show_logo) {
+      video_graphics_draw_logo();
+    }
+    active_video_buffer = paint_video_buffer;
+    //video_graphics_clear_draw_buff(PX_TRANSPARENT);
 }
 
-EXEC_RAM inline bool bit_at(const uint8_t *glyph, uint8_t gx, uint8_t gy, uint8_t BPR) {
+EXEC_RAM bool bit_at(const uint8_t *glyph, uint8_t gx, uint8_t gy, uint8_t BPR) {
     const uint8_t *row = glyph + (uint32_t)gy * BPR;
     /* MSB-first within each byte */
     uint8_t byte = row[gx >> 3];
@@ -317,6 +421,15 @@ void video_draw_line(int x0, int y0, int x1, int y1, px_t color)
         e2 = 2 * err;
         if (e2 >= dy) { err += dy; x0 += sx; }
         if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+
+void video_draw_rectangle(int x0, int y0, int x1, int y1, px_t color)
+{
+    for (uint16_t y = y0; y<=y1; y++) {
+      for (uint16_t x = x0; x<=x1; x++) {
+        video_draw_pixel(x, y, color);
+      }
     }
 }
 
