@@ -59,7 +59,7 @@ _Min_Heap_Size = 0x1000;      /* required amount of heap  */
 _Min_Stack_Size = 0x1000; /* required amount of stack */
 
 __eeprom_size = 0x1000;       /* 4K */
-__msp_font_size = 0x4000;     /* 16K */
+__msp_font_size = 0x8000;     /* 32K */
 
 /* Specify the memory areas */
 MEMORY

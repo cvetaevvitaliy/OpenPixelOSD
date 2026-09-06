@@ -8,6 +8,7 @@
 #include "video_overlay.h"
 #include "system.h"
 #include "main.h"
+#include "settings.h"
 #include "video_gen.h"
 #include "canvas_char.h"
 #include "video_graphics.h"
@@ -225,13 +226,13 @@ void video_overlay_init(void)
     set_black_level(DAC_BLACK);
     set_video_source(OPAMP_CONST_DAC);
 
-    //if (settings.displayportEnabled) {
+    if (settings.displayportEnabled) {
       setSyncMode(AUTOMATIC);
       osdState = OSD_MSP;
-    //} else {
-    //  setSyncMode(OFF);
-    //  osdState = OSD_OFF;
-    //}
+    } else {
+      setSyncMode(OFF);
+      osdState = OSD_OFF;
+    }
 }
 
 void scan_sync_voltage() {

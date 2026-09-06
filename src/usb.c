@@ -10,8 +10,8 @@
 #include "usbd_cdc_if.h"
 
 
-#define RX_BUFFER_SIZE 512 // can be reduced to save RAM
-#define TX_BUFFER_SIZE 512
+#define RX_BUFFER_SIZE 256 // can be reduced to save RAM
+#define TX_BUFFER_SIZE 256
 #define FIRST_TX_DELAY_MS 150U // Delay before the first transmission after USB connection, tim7 tick - 1MHz (10ms)
 
 static const char tx_overflow_msg[] = "\r\n*TxBuffFull*\r\n";

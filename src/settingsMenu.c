@@ -6,6 +6,7 @@
 #if defined(USE_VTX)
 #include "vtx_msp.h"
 #include "rf_pa.h"
+#include "vtx_power_levels.h"
 #endif
 #include "canvas_char.h"
 #include "video_overlay.h"
@@ -120,9 +121,9 @@ void changePower(ButtonEvent_e btn, uint8_t __attribute__((unused)) idx) {
   uint8_t power;
 
   if (btn == BTN_RIGHT)
-    power = ((vtx_get_config()->power) % rf_pa_power_count()) + 1;
+    power = ((vtx_get_config()->power) % g_vtx_power_level_count) + 1;
   else
-    power = ((rf_pa_power_count() + vtx_get_config()->power - 2) % rf_pa_power_count()) + 1;
+    power = ((g_vtx_power_level_count + vtx_get_config()->power - 2) % g_vtx_power_level_count) + 1;
   vtx_set_power(power);
 }
 

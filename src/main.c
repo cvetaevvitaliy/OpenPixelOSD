@@ -20,6 +20,9 @@
 #include "rf_pa.h"
 #include "vtx_msp.h"
 #endif
+#if defined(USE_SWO)
+#include "dbgu.h"
+#endif
 #include <stdio.h>
 
 #if defined(USE_GRAPHICS)

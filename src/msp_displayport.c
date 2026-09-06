@@ -49,12 +49,14 @@ void msp_draw_system(uint8_t row, uint8_t col, uint8_t element) {
 
    switch(element) {
     case DISPLAYPORT_SYS_VTX_VOLTAGE:
+      #if defined(ADC_RESERVED_INSTANCE)
       {
-        float vtxVoltage = adc1_read_mv(ADC1_CH_RESERVED);
+        float vtxVoltage = ADC_RESERVED_READ_MV();
         vtxVoltage = vtxVoltage / 500;
         snprintf(buffer, sizeof(buffer), "V %.1f%c", vtxVoltage, 0x06);
         canvas_char_write(col, row, (const char *)&buffer[0], 6, 0);
       }
+      #endif
       break;
     case DISPLAYPORT_SYS_VTX_TEMP:
       {
@@ -63,7 +65,8 @@ void msp_draw_system(uint8_t row, uint8_t col, uint8_t element) {
         canvas_char_write(col, row, (const char *)&buffer[0], 6, 0);
       }
       break;
-/*    case DISPLAYPORT_SYS_LQ:
+    case DISPLAYPORT_SYS_LQ:
+      #if defined(USE_VTX)
       {
         if(vtx_get_config()->pitmode) {
           snprintf(buffer, sizeof(buffer), "V%c%i   ", 0x15, vtx_get_power_mw());
@@ -73,7 +76,8 @@ void msp_draw_system(uint8_t row, uint8_t col, uint8_t element) {
         
         canvas_char_write(col, row, (const char *)&buffer[0], 5, 0);
       }
-      break;*/
+      #endif
+      break;
     default:
       break;
   }

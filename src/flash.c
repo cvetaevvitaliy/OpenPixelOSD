@@ -122,14 +122,14 @@ uint8_t flash_push(flashBlock_t* block) {
     return 0;
   }
 
+  #if !defined(NOTRACE)
   TRACE_DEBUG("FLASH write %i: %lx: ",x ,(uint32_t)&flashBlock[x]);
 
   for (uint8_t i=0; i<sizeof(flashBlock_t); i++) {
     uint8_t* b = (uint8_t*)block;
-    UNUSED(b);
     TRACE_DEBUG_WP("%x ", b[i]);
   }
-  
+  #endif  
 
   const uint8_t max_attempts = 5;
   uint8_t attemps = 0;
@@ -147,10 +147,12 @@ uint8_t flash_push(flashBlock_t* block) {
 
   TRACE_DEBUG_WP("status %i verify: ", status);
   
+  #if !defined(NOTRACE)
   for (uint8_t i=0; i<sizeof(flashBlock_t); i++) {
     TRACE_DEBUG_WP("%x ", ((uint8_t*)&flashBlock[x])[i]);
   }
   TRACE_DEBUG_WP("\n");
+  #endif
 
   return 1;
 }
@@ -193,7 +195,7 @@ void eeprom_save(void) {
 
 
 void eeprom_dump(void) {
-
+#if !defined(NOTRACE)
   TRACE_DEBUG("");
   for (uint8_t idx = 0; idx < FLASH_EEPROM_NB_BLOCKS; idx++) {
     TRACE_DEBUG_WP("%02x ", eeprom[idx].idx);
@@ -208,6 +210,7 @@ void eeprom_dump(void) {
     }
   }
   TRACE_DEBUG_WP("FLASH modified blocks: %i  free blocks: %i/%i\n\n",flash_modified(), flash_free(), (uint16_t)(FLASH_BLOCKS_PER_PAGE * FLASH_EEPROM_NB_PAGES - 1));
+#endif
 }
 
 

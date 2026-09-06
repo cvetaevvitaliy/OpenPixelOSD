@@ -114,6 +114,15 @@
 #define VIDEO_TOTAL_GAIN                        1
 #endif
 
+#if defined(USE_COLOR)
+#undef VIDEO1_INPUT_ENABLED
+#undef VIDEO2_INPUT_ENABLED
+#undef VIDEO_TOTAL_GAIN
+#define VIDEO1_INPUT_ENABLED                    true
+#define VIDEO2_INPUT_ENABLED                    false
+#define VIDEO_TOTAL_GAIN                        2
+#endif
+
 #define VISUAL_PICTURE_LINE_NS                  50000
 #define LINE_CENTER_NS                          31400
 
