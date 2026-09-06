@@ -6,9 +6,14 @@ cmake_minimum_required(VERSION 3.22)
 #   MCO      -> route the master clock to a pin for verification
 #   PA_DEBUG -> compile in the PA closed-loop OSD debug overlay
 #               (debug_pa_loop() + its field-edge trigger); off by default
+#   SWO      -> SWO debug outputs
+#   HD       -> high resolution OSD
+#   GRAPHICS -> graphical OSD (STM32G474 only)
+#   COLOR    -> color OSD (STM32G474 only)
+
 # VTX/PA is NOT a build variant -- it is a property of the selected
 # TARGET_BOARD, declared in that board's target.cmake (see below).
-set(BUILD_VARIANT "" CACHE STRING "Build variant: NO_OSC, BLINKY, MCO, PA_DEBUG (combine with +)")
+set(BUILD_VARIANT "" CACHE STRING "Build variant: NO_OSC, BLINKY, MCO, PA_DEBUG, SWO, HD, GRAPHICS, COLOR (combine with +)")
 
 set(TARGET_MCU "" CACHE STRING "Target MCU (e.g., STM32G431, STM32G474)")
 # set default to G431 if not specified
@@ -147,7 +152,6 @@ if(TARGET_MCU STREQUAL "STM32G431")
     add_compile_definitions(
             MCU_TYPE=\"STM32G431\"
             STM32G431xx
-            LOW_RAM
     )
     set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/stm32g431cbux_flash.ld)
     set(STARTUP_ASSEMBLY_FILE ./src/stm32g4xx/startup_stm32g431xx.s)
@@ -156,7 +160,6 @@ elseif(TARGET_MCU STREQUAL "STM32G474")
     add_compile_definitions(
             MCU_TYPE=\"STM32G474\"
             STM32G474xx
-            HIGH_RAM
     )
     set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/stm32g474ceux_flash.ld)
     set(STARTUP_ASSEMBLY_FILE ./src/stm32g4xx/startup_stm32g474xx.s)
@@ -215,6 +218,30 @@ if(BUILD_VARIANT MATCHES "(^|\\+)PA_DEBUG($|\\+)")
     add_compile_definitions(BUILD_VARIANT_PA_DEBUG)
 endif()
 
+if(BUILD_VARIANT MATCHES "(^|\\+)SWO($|\\+)")
+    message(STATUS "Building with SWO debug output")
+    set(BUILD_NAME "${BUILD_NAME}_SWO")
+    add_compile_definitions(USE_SWO)
+endif()
+
+if(BUILD_VARIANT MATCHES "(^|\\+)HD($|\\+)")
+    message(STATUS "Building with HD OSD")
+    set(BUILD_NAME "${BUILD_NAME}_HD")
+    add_compile_definitions(USE_HD)
+endif()
+
+if(BUILD_VARIANT MATCHES "(^|\\+)COLOR($|\\+)" AND TARGET_MCU STREQUAL "STM32G474")
+    message(STATUS "Building with color OSD")
+    set(BUILD_NAME "${BUILD_NAME}_COLOR")
+    add_compile_definitions(USE_COLOR)
+endif()
+
+if(BUILD_VARIANT MATCHES "(^|\\+)GRAPHICS($|\\+)" AND TARGET_MCU STREQUAL "STM32G474")
+    message(STATUS "Building with graphical OSD")
+    set(BUILD_NAME "${BUILD_NAME}_GRAPHICS")
+    add_compile_definitions(USE_GRAPHICS)
+endif()
+
 add_compile_definitions(
         USE_FULL_LL_DRIVER
         USE_HAL_DRIVER
@@ -237,6 +264,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/stm32g4xx/sysmem.c
         ./src/stm32g4xx/syscalls.c
         ./src/stm32g4xx/system.c
+        ./src/stm32g4xx/dbgu.c
         ./src/msp/msp.c
         ./src/adc.c
         ./src/canvas_char.c
@@ -249,7 +277,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/msp_displayport.c
         ./src/msp_fc.c
         ./src/opamp.c
+        ./src/settings.c
+        ./src/settingsMenu.c
         ./src/tim.c
+        ./src/video_color.c
         ./src/video_gen.c
         ./src/video_graphics.c
         ./src/video_overlay.c
