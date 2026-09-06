@@ -258,6 +258,7 @@ void TIM8_Init(void)
 
   LL_TIM_EnableDMAReq_UPDATE(TIM8);
 
+#if defined(RGBLED_TIM8_CH1_Pin)
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
     /**TIM8 GPIO Configuration
     PA15     ------> TIM8_CH1
@@ -269,6 +270,7 @@ void TIM8_Init(void)
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
   LL_GPIO_Init(RGBLED_TIM8_CH1_GPIO_Port, &GPIO_InitStruct);
+#endif
 
 }
 

@@ -74,6 +74,7 @@ void led_toggle(uint8_t idx) {
 }
 
 void RGB_led_send(void) {
+#if defined(RGBLED_TIM8_CH1_Pin)
   rgb_buffer = (uint8_t*)opamp_buff;
 
   uint8_t idx = 0;
@@ -101,5 +102,5 @@ void RGB_led_send(void) {
   LL_TIM_OC_SetCompareCH1(TIM8, 0);
   LL_DMA_EnableChannel(DMA2, LL_DMA_CHANNEL_5);
   LL_TIM_EnableCounter(TIM8);
-
+#endif
 }

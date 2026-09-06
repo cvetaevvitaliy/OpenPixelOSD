@@ -13,9 +13,6 @@ void DAC1_Init(void)
     /* Peripheral clock enable */
     LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_DAC1);
 
-    /* DAC1 interrupt Init */
-    NVIC_SetPriority(TIM6_DAC_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-    NVIC_EnableIRQ(TIM6_DAC_IRQn);
 
     /** DAC channel OUT1 config */
     LL_DAC_SetHighFrequencyMode(DAC1, LL_DAC_HIGH_FREQ_MODE_ABOVE_160MHZ);
@@ -57,18 +54,13 @@ void DAC3_Init(void)
     LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_DAC3);
 
     /* DAC3 DMA Init */
-
-    /* DAC3_CH1 Init */
     LL_DMA_SetPeriphRequest(DMA2, LL_DMA_CHANNEL_1, LL_DMAMUX_REQ_TIM1_UP);
     LL_DMA_SetPeriphAddress(DMA2, LL_DMA_CHANNEL_1, (uint32_t)&DAC3->DHR12R1);
-
     LL_DMA_SetDataTransferDirection(DMA2, LL_DMA_CHANNEL_1, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
     LL_DMA_SetChannelPriorityLevel(DMA2, LL_DMA_CHANNEL_1, LL_DMA_PRIORITY_VERYHIGH);
     LL_DMA_SetMode(DMA2, LL_DMA_CHANNEL_1, LL_DMA_MODE_NORMAL);
-
     LL_DMA_SetPeriphIncMode(DMA2, LL_DMA_CHANNEL_1, LL_DMA_PERIPH_NOINCREMENT);
     LL_DMA_SetMemoryIncMode(DMA2, LL_DMA_CHANNEL_1, LL_DMA_MEMORY_INCREMENT);
-
     LL_DMA_SetPeriphSize(DMA2, LL_DMA_CHANNEL_1, LL_DMA_PDATAALIGN_WORD);
     LL_DMA_SetMemorySize(DMA2, LL_DMA_CHANNEL_1, LL_DMA_MDATAALIGN_HALFWORD);
 
@@ -83,7 +75,6 @@ void DAC3_Init(void)
     DAC_InitStruct.OutputMode = LL_DAC_OUTPUT_MODE_NORMAL;
     LL_DAC_Init(DAC3, LL_DAC_CHANNEL_1, &DAC_InitStruct);
     LL_DAC_EnableTrigger(DAC3, LL_DAC_CHANNEL_1);
-
     LL_DAC_DisableDMADoubleDataMode(DAC3, LL_DAC_CHANNEL_1);
 
     /** DAC channel OUT2 config  */
