@@ -497,7 +497,7 @@ void vtx_msp_push_power_table_layout(uint8_t owner)
 
 /* Set request payload:
  *   [0] power_level_count (1..VTX_POWER_LEVEL_MAX)
- *   [1] freq_point_count (2..VTX_CAL_FREQ_POINTS_MAX)
+ *   [1] freq_point_count (1..VTX_CAL_FREQ_POINTS_MAX)
  *   [2..] frequencies_mhz[freq_point_count] (u16 LE each), strictly
  *        ascending, each within 5600-6000 MHz
  * Validated by vtx_power_levels_set_layout() -- an invalid request is
