@@ -43,9 +43,6 @@ bool rf_pa_boost_is_on(void);
 bool rf_pa_pid_active(void);
 bool rf_pa_calibration_override_active(void);
 
-void rf_pa_read_eeprom(uint8_t level);
-void rf_pa_write_eeprom(uint8_t level);
-
 /* Call periodically (e.g. every main-loop iteration) to run the DAC bias
  * PID loop against the active level's detector target, when it has one. */
 void rf_pa_loop(bool field_edge_flag);
