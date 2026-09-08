@@ -224,7 +224,7 @@ void vtx_power_levels_flush_if_dirty(void)
 
 static bool frequencies_are_valid(uint8_t freq_point_count, const uint16_t *frequencies_mhz)
 {
-    if (freq_point_count < 2 || freq_point_count > VTX_CAL_FREQ_POINTS_MAX) return false;
+    if (freq_point_count < 1 || freq_point_count > VTX_CAL_FREQ_POINTS_MAX) return false;
 
     for (uint8_t i = 0; i < freq_point_count; i++) {
         if (frequencies_mhz[i] < 5600 || frequencies_mhz[i] > 6000) return false;
@@ -266,7 +266,7 @@ void vtx_power_levels_init(void)
     bool header_is_sane = have_header
         && version == VTX_POWER_TABLE_SCHEMA_VERSION
         && power_level_count >= 1 && power_level_count <= VTX_POWER_LEVEL_MAX
-        && freq_point_count >= 2 && freq_point_count <= VTX_CAL_FREQ_POINTS_MAX;
+        && freq_point_count >= 1 && freq_point_count <= VTX_CAL_FREQ_POINTS_MAX;
 
     if (!header_is_sane) {
         TRACE_INFO("EEPROM power table absent/stale, resetting to target defaults\n");
