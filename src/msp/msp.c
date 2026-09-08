@@ -54,6 +54,8 @@ EXEC_RAM static void msp_callback(uint8_t owner, msp_version_t msp_version, uint
     case MSP_SET_PACALTABLE:
     case MSP_PACALIBRATION:
     case MSP_SET_PACALIBRATION:
+    case MSP_VTX_POWER_TABLE_LAYOUT:
+    case MSP_SET_VTX_POWER_TABLE_LAYOUT:
     case MSP_EEPROM_WRITE:
 #if defined(USE_VTX)
         vtx_msp_handle_msp(owner, msp_cmd, data_size, payload);

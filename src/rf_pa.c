@@ -143,25 +143,26 @@ static float lerp(float x, float in_min, float in_max, float out_min, float out_
 
 static uint8_t cal_freq_index(uint16_t freq)
 {
-    if (freq < g_vtx_power_levels[0].calibration[0]) freq = g_vtx_power_levels[0].calibration[0];
-    if (freq > g_vtx_power_levels[0].calibration[VTX_CAL_FREQ_POINTS - 1]) freq = g_vtx_power_levels[0].calibration[VTX_CAL_FREQ_POINTS - 1];
-    for (uint8_t i = 0; i < VTX_CAL_FREQ_POINTS - 1; i++) {
-        if (freq < g_vtx_power_levels[0].calibration[i + 1]) return i;
+    const uint8_t last = g_vtx_cal_freq_point_count - 1;
+    if (freq < g_vtx_cal_frequencies_mhz[0]) freq = g_vtx_cal_frequencies_mhz[0];
+    if (freq > g_vtx_cal_frequencies_mhz[last]) freq = g_vtx_cal_frequencies_mhz[last];
+    for (uint8_t i = 0; i < last; i++) {
+        if (freq < g_vtx_cal_frequencies_mhz[i + 1]) return i;
     }
-    return VTX_CAL_FREQ_POINTS - 2;
+    return last - 1;
 }
 
 static uint16_t get_calibration_mv(const vtx_power_level_t *lvl, uint16_t freq)
 {
     uint8_t i = cal_freq_index(freq);
-    return (uint16_t)lerp(freq, g_vtx_power_levels[0].calibration[i], g_vtx_power_levels[0].calibration[i + 1],
+    return (uint16_t)lerp(freq, g_vtx_cal_frequencies_mhz[i], g_vtx_cal_frequencies_mhz[i + 1],
                            lvl->calibration[i], lvl->calibration[i + 1]);
 }
 
 static uint16_t get_detector_target(const vtx_power_level_t *lvl, uint16_t freq)
 {
     uint8_t i = cal_freq_index(freq);
-    return (uint16_t)lerp(freq, g_vtx_power_levels[0].calibration[i], g_vtx_power_levels[0].calibration[i + 1],
+    return (uint16_t)lerp(freq, g_vtx_cal_frequencies_mhz[i], g_vtx_cal_frequencies_mhz[i + 1],
                            lvl->detector[i], lvl->detector[i + 1]);
 }
 

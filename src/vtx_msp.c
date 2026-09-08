@@ -56,7 +56,7 @@ uint8_t vtx_get_band_count(void)
 
 uint16_t vtx_get_power_mw(void)
 {
-    return g_vtx_power_levels[g_cfg.power].mW;
+    return g_vtx_power_levels[g_cfg.power - 1].mW;
 }
 
 uint16_t vtx_get_frequency(uint8_t band, uint8_t channel)
@@ -126,7 +126,7 @@ static void vtx_apply_hw(const vtx_config_t *cfg)
         rtc6705_set_frequency(cfg->frequency);
 
         if (!cfg->pitmode) {
-            const vtx_power_level_t *lvl = &g_vtx_power_levels[cfg->power];
+            const vtx_power_level_t *lvl = &g_vtx_power_levels[cfg->power - 1];
 
             rtc6705_allow_power_writes(true);
             rtc6705_set_power(lvl->rtc6705_level);
@@ -271,7 +271,7 @@ void vtx_msp_clear_table_and_set_defaults(uint8_t owner)
 void vtx_msp_push_power_table(uint8_t owner)
 {
     for (uint8_t i = 1; i <= g_vtx_power_level_count; i++) {
-        const uint16_t mw = g_vtx_power_levels[i].mW;
+        const uint16_t mw = g_vtx_power_levels[i - 1].mW;
 
         char label[16];
         int label_len = snprintf(label, sizeof(label), "%u", (unsigned)mw);
@@ -332,53 +332,46 @@ void vtx_msp_push_band_table(uint8_t owner)
 }
 
 #if defined(USE_PA)
-/* Includes index 0 (i=0) deliberately: that's not a real power level,
- * it's the frequency-breakpoint list (see vtx_power_levels.h /
- * rf_pa.c) -- advertising it the same way a calibration tool reads
- * pa_table[0].value[i] as the frequencies to sweep.
- *
- * Payload is 33 bytes: the original 31 (idx, mW, calibration[7],
- * detector[7]) plus two new trailing bytes for the calibration UI to
- * DISPLAY (not edit) hardware facts about each level:
- *   [31] ext_pa_enable (0/1) for real levels (i>=1). For i==0 -- which
- *        has no real ext_pa_enable, since it's not a real level -- this
- *        byte is repurposed to carry PA_DAC_SIGN instead: 1 if
- *        PA_DAC_SIGN > 0 (inverted -- lower DAC mV means MORE RF
- *        output, e.g. RTC76401), 0 if PA_DAC_SIGN < 0 (normal/typical).
- *        A calibration tool needs this to know which direction to step
- *        the DAC during a sweep, and this is the only board-specific
- *        fact that has nowhere else to live over MSP.
- *   [32] rtc6705_level (raw register value) for real levels; 0 for i==0.
- */
+/* Payload is variable-length, sized to the current layout (max 6 +
+ * VTX_CAL_FREQ_POINTS_MAX*4 = 42 bytes, well inside MSPv2's limit):
+ *   [0]  idx (1..g_vtx_power_level_count)
+ *   [1-2] mW (u16 LE)
+ *   [3]  ext_pa_enable (0/1)
+ *   [4]  rtc6705_level (raw PA5G_PW register value)
+ *   [5]  freq_point_count -- echoed so a client can decode this payload
+ *        without a separate layout query first
+ *   [6..] calibration[freq_point_count] (u16 LE each)
+ *   [..]  detector[freq_point_count] (u16 LE each)
+ * mW/ext_pa_enable/rtc6705_level are genuine current values now (all
+ * three are settable via vtx_msp_set_calibration_table()), not fixed
+ * hardware facts as before. */
 void vtx_msp_push_calibration_table(uint8_t owner)
 {
-    for (uint8_t i = 0; i <= g_vtx_power_level_count; i++) {
-        const uint16_t mw = g_vtx_power_levels[i].mW;
+    for (uint8_t i = 1; i <= g_vtx_power_level_count; i++) {
+        const vtx_power_level_t *lvl = &g_vtx_power_levels[i - 1];
 
-        uint8_t p[1 + 2 + 14 + 14 + 1 + 1] = {0};
+        uint8_t p[6 + VTX_CAL_FREQ_POINTS_MAX * 4] = {0};
         p[0] = i;
-        p[1] = (uint8_t)(mw & 0xFF);
-        p[2] = (uint8_t)((mw >> 8) & 0xFF);
-        for (uint8_t c = 0; c < 7; c++) {
-            p[3 + (c * 2)] = (uint8_t)(g_vtx_power_levels[i].calibration[c] & 0xFF);
-            p[4 + (c * 2)] = (uint8_t)((g_vtx_power_levels[i].calibration[c] >> 8) & 0xFF);
+        p[1] = (uint8_t)(lvl->mW & 0xFF);
+        p[2] = (uint8_t)((lvl->mW >> 8) & 0xFF);
+        p[3] = lvl->ext_pa_enable ? 1 : 0;
+        p[4] = (uint8_t)lvl->rtc6705_level;
+        p[5] = g_vtx_cal_freq_point_count;
+
+        uint8_t off = 6;
+        for (uint8_t c = 0; c < g_vtx_cal_freq_point_count; c++) {
+            p[off++] = (uint8_t)(lvl->calibration[c] & 0xFF);
+            p[off++] = (uint8_t)((lvl->calibration[c] >> 8) & 0xFF);
         }
-        for (uint8_t c = 0; c < 7; c++) {
-            p[17 + (c * 2)] = (uint8_t)(g_vtx_power_levels[i].detector[c] & 0xFF);
-            p[18 + (c * 2)] = (uint8_t)((g_vtx_power_levels[i].detector[c] >> 8) & 0xFF);
-        }
-        if (i == 0) {
-            p[31] = (PA_DAC_SIGN > 0) ? 1 : 0;
-            p[32] = 0;
-        } else {
-            p[31] = g_vtx_power_levels[i].ext_pa_enable ? 1 : 0;
-            p[32] = (uint8_t)g_vtx_power_levels[i].rtc6705_level;
+        for (uint8_t c = 0; c < g_vtx_cal_freq_point_count; c++) {
+            p[off++] = (uint8_t)(lvl->detector[c] & 0xFF);
+            p[off++] = (uint8_t)((lvl->detector[c] >> 8) & 0xFF);
         }
 
         uint8_t tx_buff[64];
         const uint16_t len = construct_msp_command_v2(tx_buff,
                             MSP_SET_PACALTABLE,
-                            p, (uint8_t)sizeof(p),
+                            p, off,
                             MSP_PACKET_COMMAND);
 
         msp_tx_send_owner(owner, tx_buff, len);
@@ -386,23 +379,21 @@ void vtx_msp_push_calibration_table(uint8_t owner)
 }
 
 /* Two payload shapes:
- *   data_size == 1, payload[0] == 0xFF: reset ALL levels back to this
- *     target's own compiled-in defaults (g_vtx_power_level_defaults[],
- *     from this board's target.c) -- NOT a hardcoded/zeroed value,
- *     since what counts as "safe/uncalibrated" depends on PA_DAC_SIGN
- *     and varies by target (a naive 0 would be actively dangerous on an
- *     inverted-sign board, where low DAC = high output). No level is
- *     specified in this 1-byte form -- it always resets every level in
- *     one call, matching a whole-table "erase calibration" action.
- *     Persists immediately via rf_pa_write_eeprom(), same as the normal
- *     per-level write path below (a no-op for a level that isn't
- *     ext_pa_enable, same as it's always been).
- *   data_size >= 17: normal per-level write (payload[0] = level,
- *     followed by 7 calibration + 7 detector mV values) -- unchanged
- *     from before.
- * Anything else (a 1-byte payload that isn't the 0xFF sentinel, or a
- * length in between) is malformed and ignored, same as before this
- * reset path existed. */
+ *   data_size == 1, payload[0] == 0xFF: factory reset -- level count,
+ *     frequency breakpoints AND every level's mW/hardware mapping/
+ *     calibration/detector all go back to this target's own compiled-in
+ *     defaults (g_vtx_power_level_defaults[]/g_vtx_cal_freq_defaults_mhz[],
+ *     from this board's target.c) -- NOT a hardcoded/zeroed value, since
+ *     what counts as "safe/uncalibrated" depends on PA_DAC_SIGN and
+ *     varies by target (a naive 0 would be actively dangerous on an
+ *     inverted-sign board, where low DAC = high output). See
+ *     vtx_power_levels_reset_to_defaults().
+ *   data_size >= 6: normal per-level write -- see this function's own
+ *     payload doc comment above (on vtx_msp_push_calibration_table()).
+ *     Rejected (logged, no state change) if freq_point_count doesn't
+ *     match the table's current layout, rather than misinterpreting the
+ *     calibration[]/detector[] arrays under the wrong point count.
+ * Anything else is malformed and ignored. */
 void vtx_msp_set_calibration_table(uint8_t owner, const uint8_t *payload, uint16_t data_size)
 {
     (void)owner;
@@ -412,45 +403,133 @@ void vtx_msp_set_calibration_table(uint8_t owner, const uint8_t *payload, uint16
 
     if (data_size == 1) {
         if (payload[0] == 0xFF) {
-            for (uint8_t level = 1; level <= g_vtx_power_level_count; level++) {
-                memcpy(g_vtx_power_levels[level].calibration,
-                       g_vtx_power_level_defaults[level].calibration,
-                       sizeof(g_vtx_power_levels[level].calibration));
-                memcpy(g_vtx_power_levels[level].detector,
-                       g_vtx_power_level_defaults[level].detector,
-                       sizeof(g_vtx_power_levels[level].detector));
-                rf_pa_write_eeprom(level); // no-op if this level isn't ext_pa_enable -- see vtx_power_levels.c
-            }
-            TRACE_INFO("PA table reset to defaults\n");
+            vtx_power_levels_reset_to_defaults();
         }
         return;
     }
 
-    if (data_size < 17) {
+    if (data_size < 6) {
         return; // malformed
     }
 
     const uint16_t level = payload[0];
+    const uint8_t freq_point_count = payload[5];
 
     if (!level || level > g_vtx_power_level_count) {
-        return; // index 0 (frequency breakpoints) is deliberately not writable here
+        return; // out of range for the current layout
+    }
+    if (freq_point_count != g_vtx_cal_freq_point_count) {
+        TRACE_ERROR("Rejected PA table entry, frequency count mismatch. got: %u, expected: %u\n", freq_point_count, g_vtx_cal_freq_point_count);
+        return; // stale/mismatched client -- refuse rather than misread the arrays below
+    }
+    if (data_size < (uint16_t)(6 + freq_point_count * 2)) {
+        return; // malformed
     }
 
-    TRACE_INFO("SET PA table %i\n", level);
+    vtx_power_level_t *lvl = &g_vtx_power_levels[level - 1];
+    lvl->mW = (uint16_t)payload[1] | ((uint16_t)payload[2] << 8);
+    lvl->ext_pa_enable = payload[3] != 0;
+    lvl->rtc6705_level = (rtc6705_power_t)payload[4];
 
-    for (uint8_t c = 0; c < 7; c++) {
-        uint16_t mv = payload[3 + (c * 2)] + (uint16_t)(payload[4 + (c * 2)] << 8);
-        g_vtx_power_levels[level].calibration[c] = mv;
+    for (uint8_t c = 0; c < freq_point_count; c++) {
+        lvl->calibration[c] = (uint16_t)payload[6 + c * 2] | ((uint16_t)payload[7 + c * 2] << 8);
     }
 
-    if (data_size >= 31) {
-        for (uint8_t c = 0; c < 7; c++) {
-            uint16_t det_mv = payload[17 + (c * 2)] + (uint16_t)(payload[18 + (c * 2)] << 8);
-            g_vtx_power_levels[level].detector[c] = det_mv;
+    if (data_size >= (uint16_t)(6 + freq_point_count * 4)) {
+        const uint16_t det_off = 6 + freq_point_count * 2;
+        for (uint8_t c = 0; c < freq_point_count; c++) {
+            lvl->detector[c] = (uint16_t)payload[det_off + c * 2] | ((uint16_t)payload[det_off + c * 2 + 1] << 8);
         }
     }
 
-    rf_pa_write_eeprom((uint8_t)level); // no-op if this level isn't ext_pa_enable -- see vtx_power_levels.c
+    TRACE_INFO("SET PA table %i\n", level);
+    vtx_power_levels_write_eeprom((uint8_t)level);
+}
+
+/* Query reply (sent for a zero-length MSP_VTX_POWER_TABLE_LAYOUT request,
+ * as well as unprompted as the immediate ACK to a SET -- before anything
+ * is actually written to EEPROM, see vtx_power_levels_flush_if_dirty()):
+ *   [0] schema_version
+ *   [1] power_level_count
+ *   [2] power_level_max (VTX_POWER_LEVEL_MAX)
+ *   [3] freq_point_count
+ *   [4] freq_point_max (VTX_CAL_FREQ_POINTS_MAX)
+ *   [5] dac_sign_inverted (0/1) -- 1 if PA_DAC_SIGN > 0 (inverted -- lower
+ *       DAC mV means MORE RF output, e.g. RTC76401), 0 if normal/typical.
+ *       A calibration tool needs this to know which direction to step
+ *       the DAC during a sweep; this table-wide hardware fact used to be
+ *       smuggled into the PACALTABLE idx==0 row, which no longer exists.
+ *   [6] layout_dirty (0/1) -- true while a level/layout change is staged
+ *       in RAM but not yet flushed to EEPROM (vtx_power_levels_is_dirty()).
+ *       A calibration tool polls this instead of guessing how long that
+ *       write might take.
+ *   [7..] frequencies_mhz[freq_point_count] (u16 LE each)
+ */
+void vtx_msp_push_power_table_layout(uint8_t owner)
+{
+    uint8_t p[7 + VTX_CAL_FREQ_POINTS_MAX * 2] = {0};
+    p[0] = VTX_POWER_TABLE_SCHEMA_VERSION;
+    p[1] = g_vtx_power_level_count;
+    p[2] = VTX_POWER_LEVEL_MAX;
+    p[3] = g_vtx_cal_freq_point_count;
+    p[4] = VTX_CAL_FREQ_POINTS_MAX;
+    p[5] = (PA_DAC_SIGN > 0) ? 1 : 0;
+    p[6] = vtx_power_levels_is_dirty() ? 1 : 0;
+
+    uint8_t off = 7;
+    for (uint8_t c = 0; c < g_vtx_cal_freq_point_count; c++) {
+        p[off++] = (uint8_t)(g_vtx_cal_frequencies_mhz[c] & 0xFF);
+        p[off++] = (uint8_t)((g_vtx_cal_frequencies_mhz[c] >> 8) & 0xFF);
+    }
+
+    // construct_msp_command_v2() needs 3 (header) + 5 (v2 header) + off
+    // (payload) + 1 (checksum) bytes; off maxes out at 7 + 9*2 = 25, so
+    // this must be at least 34 -- sized to 64 to match this file's other
+    // MSP send buffers with headroom.
+    uint8_t tx_buff[64];
+    const uint16_t len = construct_msp_command_v2(tx_buff,
+                        MSP_VTX_POWER_TABLE_LAYOUT,
+                        p, off,
+                        MSP_PACKET_COMMAND);
+
+    msp_tx_send_owner(owner, tx_buff, len);
+}
+
+/* Set request payload:
+ *   [0] power_level_count (1..VTX_POWER_LEVEL_MAX)
+ *   [1] freq_point_count (2..VTX_CAL_FREQ_POINTS_MAX)
+ *   [2..] frequencies_mhz[freq_point_count] (u16 LE each), strictly
+ *        ascending, each within 5600-6000 MHz
+ * Validated by vtx_power_levels_set_layout() -- an invalid request is
+ * rejected (logged, no state change) rather than silently clamped, and a
+ * valid one ALWAYS resets every level's calibration[]/detector[] back to
+ * target defaults (see that function's own doc comment for why a
+ * changed frequency table can't keep old calibration data). Always
+ * echoes the resulting layout back, so the caller can confirm what was
+ * actually applied (or that a rejected request left the old layout in
+ * place). */
+void vtx_msp_set_power_table_layout(uint8_t owner, const uint8_t *payload, uint16_t data_size)
+{
+    if (!payload || data_size < 2) {
+        vtx_msp_push_power_table_layout(owner); // malformed -- report current layout unchanged
+        return;
+    }
+
+    const uint8_t power_level_count = payload[0];
+    const uint8_t freq_point_count = payload[1];
+
+    if (data_size < (uint16_t)(2 + freq_point_count * 2)) {
+        vtx_msp_push_power_table_layout(owner); // malformed -- report current layout unchanged
+        return;
+    }
+
+    uint16_t frequencies_mhz[VTX_CAL_FREQ_POINTS_MAX] = {0};
+    for (uint8_t c = 0; c < freq_point_count && c < VTX_CAL_FREQ_POINTS_MAX; c++) {
+        frequencies_mhz[c] = (uint16_t)payload[2 + c * 2] | ((uint16_t)payload[3 + c * 2] << 8);
+    }
+
+    vtx_power_levels_set_layout(power_level_count, freq_point_count, frequencies_mhz);
+    vtx_msp_push_power_table_layout(owner);
 }
 
 /* Payload is 11 bytes -- atomicity of this data is required by the calibration tool
@@ -544,7 +623,7 @@ void vtx_msp_set_calibration(uint8_t owner, const uint8_t *payload, uint16_t dat
     if (level && level != g_cfg.power && level <= g_vtx_power_level_count) {
         g_cfg.power = level;
         rtc6705_allow_power_writes(true);
-        rtc6705_set_power(g_vtx_power_levels[g_cfg.power].rtc6705_level);
+        rtc6705_set_power(g_vtx_power_levels[g_cfg.power - 1].rtc6705_level);
         rtc6705_allow_power_writes(false);
         TRACE_INFO("Calibration power %i\n", level);
     }
@@ -663,6 +742,16 @@ bool vtx_msp_handle_msp(uint8_t owner, uint16_t msp_cmd, uint16_t data_size, con
 
     case MSP_SET_PACALTABLE:
         vtx_msp_set_calibration_table(owner, payload, data_size);
+        break;
+
+    case MSP_VTX_POWER_TABLE_LAYOUT:
+        if (data_size == 0) {
+            vtx_msp_push_power_table_layout(owner);
+        }
+        break;
+
+    case MSP_SET_VTX_POWER_TABLE_LAYOUT:
+        vtx_msp_set_power_table_layout(owner, payload, data_size);
         break;
 #endif
 

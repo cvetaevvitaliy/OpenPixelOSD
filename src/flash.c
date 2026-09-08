@@ -19,7 +19,8 @@ extern uint8_t __eeprom_size[];
 #define FLASH_EEPROM_NB_PAGES     (FLASH_EEPROM_SIZE / FLASH_PAGE_SIZE)
 #define FLASH_BANK_NUMBER(addr)   (((addr) < (FLASH_BANK1_BASE + 0x40000U)) ? 1U : 2U)
 #define FLASH_BLOCKS_PER_PAGE     (FLASH_PAGE_SIZE / sizeof(flashBlock_t))
-#define FLASH_EEPROM_NB_BLOCKS    32
+// header(1) + freq table(3) + up to VTX_POWER_LEVEL_MAX(16) levels x 6 blocks/level = 100
+#define FLASH_EEPROM_NB_BLOCKS    100
 
 #define FLASH_INIT_DOUBLEWORD     (0xdeadbeff)
 

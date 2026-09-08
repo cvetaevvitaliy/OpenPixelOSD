@@ -13,10 +13,12 @@
 #define MSP_PORT_BUFF_SIZE    192
 #define MSP_V2_FRAME_ID       255
 
-#define MSP_PACALTABLE            0x4800
-#define MSP_SET_PACALTABLE        0x4801
-#define MSP_PACALIBRATION         0x4802
-#define MSP_SET_PACALIBRATION     0x4803
+#define MSP_PACALTABLE                  0x4800
+#define MSP_SET_PACALTABLE              0x4801
+#define MSP_PACALIBRATION                0x4802
+#define MSP_SET_PACALIBRATION           0x4803
+#define MSP_VTX_POWER_TABLE_LAYOUT       0x4804
+#define MSP_SET_VTX_POWER_TABLE_LAYOUT   0x4805
 
 typedef enum {
     MSP_IDLE,

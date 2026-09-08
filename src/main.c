@@ -115,6 +115,7 @@ int main (void)
 
 #if defined(USE_VTX) && defined(USE_PA)
         rf_pa_loop(field_edge_flag);
+        vtx_power_levels_flush_if_dirty(); // deferred EEPROM write
 #endif
 
 #if 0 // TODO: remove later

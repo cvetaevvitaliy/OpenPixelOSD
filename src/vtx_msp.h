@@ -69,6 +69,8 @@ void vtx_msp_push_calibration_table(uint8_t owner);
 void vtx_msp_set_calibration_table(uint8_t owner, const uint8_t *payload, uint16_t data_size);
 void vtx_msp_push_calibration(uint8_t owner);
 void vtx_msp_set_calibration(uint8_t owner, const uint8_t *payload, uint16_t data_size);
+void vtx_msp_push_power_table_layout(uint8_t owner);
+void vtx_msp_set_power_table_layout(uint8_t owner, const uint8_t *payload, uint16_t data_size);
 #endif
 void vtx_msp_eeprom_write(uint8_t owner);
 
