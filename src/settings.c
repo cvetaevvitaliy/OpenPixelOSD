@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define BLOCK_SETTINGS      31
+#define BLOCK_SETTINGS      (FLASH_EEPROM_NB_BLOCKS - 1)
 
 setting_t settings;
 
