@@ -10,6 +10,9 @@
 
 #include "msp_fc.h"
 
+#include "video_overlay.h"
+#include "settings.h"
+
 fc_t fc;
 uint8_t boxIdIdx[3] = {0};
 
@@ -61,9 +64,15 @@ bool msp_fc_handle_msp(uint8_t owner, uint16_t msp_cmd, uint16_t data_size, cons
         if ( !fc.status.armed && (status & 0x01)) {
             TRACE_INFO("FC ARMED\n");
             fc.status.armed = 1;
+            if (settings.displayportEnabled) {
+              setSyncMode(EXTERNAL);
+            }
         } else if ( fc.status.armed && !(status & 0x01)) {
             TRACE_INFO("FC DISARMED\n");
             fc.status.armed = 0;
+            if (settings.displayportEnabled) {
+              setSyncMode(AUTOMATIC);
+            }
         }
 
         if (boxIdIdx[0] && (fc.status.cameraControl1 != ((status>>boxIdIdx[0]) & 0x01))) {
