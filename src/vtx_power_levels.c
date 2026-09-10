@@ -106,7 +106,7 @@ static void stage_level_to_eeprom(uint8_t level)
 {
     if (!level || level > VTX_POWER_LEVEL_MAX) return;
 
-    uint8_t buf[EEPROM_LEVEL_BLOCKS * 7];
+    uint8_t buf[EEPROM_LEVEL_BLOCKS * 7] = {0};
     level_pack(&g_vtx_power_levels[level - 1], buf);
     eeprom_write_blocks(EEPROM_LEVEL_BASE(level), EEPROM_LEVEL_BLOCKS, buf);
 }
