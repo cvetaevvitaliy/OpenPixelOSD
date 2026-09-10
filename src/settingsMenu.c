@@ -254,7 +254,11 @@ void msp_menu(void) {
     canvas_char_draw_complete();
     
     if (settings.displayportEnabled) {
-      setSyncMode(AUTOMATIC);
+      if (fc.status.armed) {
+        setSyncMode(EXTERNAL);
+      } else {
+        setSyncMode(AUTOMATIC);
+      }
       osdState = OSD_MSP;
     } else {
       setSyncMode(OFF);
