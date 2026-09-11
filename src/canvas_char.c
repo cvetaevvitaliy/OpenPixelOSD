@@ -39,12 +39,12 @@ EXEC_RAM void canvas_char_draw_complete(void)
     video_graphics_draw_complete();
 }
 
-EXEC_RAM void canvas_print(uint8_t x, uint8_t y, const char *str) {
+EXEC_RAM void canvas_print(uint8_t x, uint8_t y, const char *str, uint8_t font) {
   if (x >= COLUMN_SIZE) return;
   if (y >= ROW_SIZE) return;
 
   while (*str && x < COLUMN_SIZE) {
-    video_draw_char_at(*str++, x++ * FONT_WIDTH, y * FONT_HEIGHT, PX_WHITE);
+    video_draw_char_at(*str++, x++ * FONT_WIDTH, y * FONT_HEIGHT, font);
   }
 }
 
@@ -83,12 +83,12 @@ EXEC_RAM void canvas_char_draw_complete(void)
     active_buffer = paint_buffer; // Switch active buffer 
 }
 
-EXEC_RAM void canvas_print(uint8_t x, uint8_t y, const char *str) {
+EXEC_RAM void canvas_print(uint8_t x, uint8_t y, const char *str, uint8_t font) {
   if (x >= COLUMN_SIZE) return;
   if (y >= ROW_SIZE) return;
 
   while (*str && x < COLUMN_SIZE) {
-    canvas_char_map[paint_buffer][y][x++] = *str++;
+    canvas_char_map[paint_buffer][y][x++] = *str++ | (font<<8);
   }
 }
 
