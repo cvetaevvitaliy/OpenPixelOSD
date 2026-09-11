@@ -17,6 +17,8 @@
 #define OSD_MENU_TEXT_LEFT          ((COLUMN_SIZE - 24) / 2)
 #define OSD_MENU_VALUE_LEFT         (OSD_MENU_TEXT_LEFT + 14 )
 
+#define OSD_FONT_PAGE               0
+
 uint8_t tempChannel;
 uint8_t tempBand;
 uint8_t tempVideoInput;
@@ -94,7 +96,7 @@ void printMenuValueVtx(uint8_t x, uint8_t y, uint8_t idx) {
     default:
       break;
   }
-  canvas_print(x, y, buffer);
+  canvas_print(x, y, buffer, OSD_FONT_PAGE);
   canvas_char_draw_complete();
 }
 
@@ -155,7 +157,7 @@ void printMenuValue(uint8_t x, uint8_t y, uint8_t idx) {
     default:
       break;
   }
-  canvas_print(x, y, buffer);
+  canvas_print(x, y, buffer, OSD_FONT_PAGE);
   canvas_char_draw_complete();
 }
 
@@ -233,14 +235,14 @@ void msp_menu(void) {
     setSyncMode(AUTOMATIC);
     canvas_char_clean();
     for (uint8_t i = 0; i < MENUE_SIZE; i++) {
-      canvas_print(OSD_MENU_TEXT_LEFT, OSD_MENU_TOP + i, osdMenue[i].text);
+      canvas_print(OSD_MENU_TEXT_LEFT, OSD_MENU_TOP + i, osdMenue[i].text, OSD_FONT_PAGE);
       if (i == selectedEntry)
-        canvas_print(OSD_MENU_TEXT_LEFT - 1, OSD_MENU_TOP + i, ">");
+        canvas_print(OSD_MENU_TEXT_LEFT - 1, OSD_MENU_TOP + i, ">", OSD_FONT_PAGE);
       if (osdMenue[i].printFunc != NULL) {
         osdMenue[i].printFunc(OSD_MENU_VALUE_LEFT ,OSD_MENU_TOP + i, osdMenue[i].idx);
         if (osdMenue[i].keyFunc != NULL) {
-          canvas_print(OSD_MENU_VALUE_LEFT - 2, OSD_MENU_TOP + i, "<");
-          canvas_print(OSD_MENU_VALUE_LEFT + 9, OSD_MENU_TOP + i, ">");
+          canvas_print(OSD_MENU_VALUE_LEFT - 2, OSD_MENU_TOP + i, "<", OSD_FONT_PAGE);
+          canvas_print(OSD_MENU_VALUE_LEFT + 9, OSD_MENU_TOP + i, ">", OSD_FONT_PAGE);
         }
       }
     }
@@ -282,12 +284,12 @@ void msp_menu(void) {
   }
 
   if (btnLast == BTN_MID && (btn == BTN_DOWN || btn == BTN_UP)) {
-    canvas_print(OSD_MENU_TEXT_LEFT - 1, OSD_MENU_TOP + selectedEntry, " ");
+    canvas_print(OSD_MENU_TEXT_LEFT - 1, OSD_MENU_TOP + selectedEntry, " ", OSD_FONT_PAGE);
     if (btn == BTN_DOWN)
       selectedEntry = (selectedEntry + 1) % MENUE_SIZE;
     else
       selectedEntry = (MENUE_SIZE + selectedEntry - 1) % MENUE_SIZE;
-    canvas_print(OSD_MENU_TEXT_LEFT - 1, OSD_MENU_TOP + selectedEntry, ">");
+    canvas_print(OSD_MENU_TEXT_LEFT - 1, OSD_MENU_TOP + selectedEntry, ">", OSD_FONT_PAGE);
     canvas_char_draw_complete();
   }
 
