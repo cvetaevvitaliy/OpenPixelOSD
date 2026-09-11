@@ -58,7 +58,7 @@
 #if defined(USE_GRAPHICS) && defined(USE_COLOR)
 #undef USE_HD
 #define ROW_SIZE                                15
-#define COLUMN_SIZE                             32
+#define COLUMN_SIZE                             36
 #define OPAMP_DELAY                             13
 #define COLOR_DELAY_PAL                         70
 #define COLOR_DELAY_NTSC                        88
@@ -69,7 +69,7 @@
 #define OPAMP_DELAY                             10
 #elif defined(USE_GRAPHICS)
 #define ROW_SIZE                                15
-#define COLUMN_SIZE                             32
+#define COLUMN_SIZE                             36
 #define OPAMP_DELAY                             13
 #elif defined(USE_HD) && defined(USE_COLOR)
 #define ROW_SIZE                                30

@@ -61,16 +61,20 @@ _Min_Stack_Size = 0x1000; /* required amount of stack */
 __eeprom_size = 0x1000;       /* 4K */
 __msp_font_size = 0x8000;     /* 32K */
 
+__ccm_total_size = 0x8000;   /* 32 KB CCMRAM total */
+__ccm_size       = 0x3800;   /* configurable CCMRAM usage */
+__ccm_free       = __ccm_total_size - __ccm_size;
+
 /* Specify the memory areas */
 MEMORY
 {
-  RAM (xrw)           : ORIGIN = 0x20000000, LENGTH = 96K
+  RAM (xrw)           : ORIGIN = 0x20000000, LENGTH = (96K + __ccm_free)
   FLASH (rx)          : ORIGIN = 0x08000000, LENGTH = 0x80000 - __eeprom_size - 0x4000 - 0x2000 - 0x4000 /* 512K - 4K - 16K - 8K - 16K = 468K */
   FLASH_SYS_FONT (rx) : ORIGIN = 0x08000000 + (0x80000 - __eeprom_size - __msp_font_size - 0x2000 - 0x4000), LENGTH = 0x4000 /* 16K */
   FLASH_LOGO (rx)     : ORIGIN = 0x08000000 + (0x80000 - __eeprom_size - __msp_font_size - 0x2000), LENGTH = 0x2000 /* 8K */
   FLASH_MSP_FONT (rx) : ORIGIN = 0x08000000 + (0x80000 - __eeprom_size - __msp_font_size), LENGTH = __msp_font_size
   FLASH_EEPROM (rx)   : ORIGIN = 0x08000000 + (0x80000 - __eeprom_size), LENGTH = __eeprom_size
-  CCMRAM (xrw)        : ORIGIN = 0x10000000, LENGTH = 32K
+  CCMRAM (xrw)        : ORIGIN = (0x10000000 + __ccm_free), LENGTH = __ccm_size
 }
 
 /* Define output sections */
