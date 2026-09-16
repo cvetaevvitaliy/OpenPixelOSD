@@ -3,7 +3,7 @@
  * Copyright (C) 2025 Vitaliy N <vitaliy.nimych@gmail.com>
  */
 #ifndef MSP_DISPLAYPORT_H
-//#define MSP_DISPLAYPORT_H
+#define MSP_DISPLAYPORT_H
 #include <stdint.h>
 typedef enum
 {
@@ -14,5 +14,6 @@ typedef enum
 
 void msp_displayport_init(void);
 void msp_loop_process(void);
+void msp_camera_switch_process(void);
 
 #endif //MSP_DISPLAYPORT_H

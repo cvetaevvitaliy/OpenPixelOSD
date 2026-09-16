@@ -132,6 +132,8 @@ static void show_version(void)
     canvas_char_write(4, 9, str, strlen(str));
     sprintf(str, "MCU: %s", MCU_TYPE);
     canvas_char_write(8, 10, str, strlen(str));
+     sprintf(str, "WAITING FOR FC...");
+    canvas_char_write(7, 11, str, strlen(str));
     canvas_char_draw_complete();
 }
 
