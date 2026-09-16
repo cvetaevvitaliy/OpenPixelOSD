@@ -11,12 +11,17 @@ void TIM1_Init(void)
     /* Peripheral clock enable */
     LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM1);
 
-    LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_1, LL_DMAMUX_REQ_TIM1_UP);
+    /*
+     * DAC3 is updated on TIM1 update.  Switch OPAMP1 slightly later on
+     * TIM1 CH2 so the new DAC value has settled before it is connected to
+     * the composite-video output.
+     */
+    LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_1, LL_DMAMUX_REQ_TIM1_CH2);
 
     LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_1, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
     LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_1, (uint32_t)&OPAMP1->CSR);
 
-    LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_1, LL_DMA_PRIORITY_HIGH);
+    LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_1, LL_DMA_PRIORITY_VERYHIGH);
 
     LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_1, LL_DMA_MODE_NORMAL);
 
@@ -34,21 +39,36 @@ void TIM1_Init(void)
 
     TIM_InitStruct.Prescaler = 0;
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-    TIM_InitStruct.Autoreload = 24;
+    TIM_InitStruct.Autoreload = VIDEO_PIXEL_TICKS - 1U;
     TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
     TIM_InitStruct.RepetitionCounter = 0;
     LL_TIM_Init(TIM1, &TIM_InitStruct);
     LL_TIM_DisableARRPreload(TIM1);
     LL_TIM_SetClockSource(TIM1, LL_TIM_CLOCKSOURCE_INTERNAL);
-    // TIM2 forwards the selected COMP2 sync signal to TIM1 through ITR6.
+    /*
+     * Like Telekatz, TIM2 -> TIM15 -> TIM1 defines the active-video start
+     * in hardware. ITR6 on TIM1 is TIM15, not TIM2.
+     */
     LL_TIM_SetTriggerInput(TIM1, LL_TIM_TS_ITR6);
-    //LL_TIM_SetSlaveMode(TIM1, LL_TIM_SLAVEMODE_COMBINED_RESETTRIGGER);
-    LL_TIM_SetSlaveMode(TIM1, LL_TIM_SLAVEMODE_RESET);
+    LL_TIM_SetSlaveMode(TIM1, LL_TIM_SLAVEMODE_COMBINED_RESETTRIGGER);
     LL_TIM_DisableExternalClock(TIM1);
     LL_TIM_DisableIT_TRIG(TIM1);
     LL_TIM_DisableDMAReq_TRIG(TIM1);
     LL_TIM_SetTriggerOutput(TIM1, LL_TIM_TRGO_UPDATE);
     LL_TIM_DisableMasterSlaveMode(TIM1);
+
+    /* OPAMP DMA event, delayed 16 timer clocks from the DAC update event. */
+    LL_TIM_OC_InitTypeDef TIM_OC_InitStruct = {0};
+    TIM_OC_InitStruct.OCMode = LL_TIM_OCMODE_PWM1;
+    TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_DISABLE;
+    TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_DISABLE;
+    TIM_OC_InitStruct.CompareValue = 16;
+    TIM_OC_InitStruct.OCPolarity = LL_TIM_OCPOLARITY_HIGH;
+    TIM_OC_InitStruct.OCNPolarity = LL_TIM_OCPOLARITY_HIGH;
+    TIM_OC_InitStruct.OCIdleState = LL_TIM_OCIDLESTATE_LOW;
+    TIM_OC_InitStruct.OCNIdleState = LL_TIM_OCIDLESTATE_LOW;
+    LL_TIM_OC_Init(TIM1, LL_TIM_CHANNEL_CH2, &TIM_OC_InitStruct);
+    LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2);
 }
 
 void TIM2_Init(void)
@@ -83,6 +103,32 @@ void TIM2_Init(void)
     LL_TIM_IC_SetFilter(TIM2, LL_TIM_CHANNEL_CH2, LL_TIM_IC_FILTER_FDIV4_N6);
     LL_TIM_IC_SetPolarity(TIM2, LL_TIM_CHANNEL_CH2, LL_TIM_IC_POLARITY_RISING);
     LL_TIM_SetRemap(TIM2, LL_TIM_TIM2_TI2_RMP_COMP2);
+
+    // Stop overlay before the next sync pulse, even if DMA is incomplete.
+    LL_TIM_OC_InitTypeDef oc = {0};
+    oc.OCMode = LL_TIM_OCMODE_PWM1;
+    oc.CompareValue = VIDEO_BLACK_SAMPLE_TICKS;
+    LL_TIM_OC_Init(TIM2, LL_TIM_CHANNEL_CH1, &oc);
+    LL_TIM_CC_EnableChannel(TIM2, LL_TIM_CHANNEL_CH1);
+    oc.CompareValue = VIDEO_LINE_END_TICKS;
+    LL_TIM_OC_Init(TIM2, LL_TIM_CHANNEL_CH3, &oc);
+    LL_TIM_CC_EnableChannel(TIM2, LL_TIM_CHANNEL_CH3);
+}
+
+void TIM15_Init(void)
+{
+    // Derived from Telekatz/OpenPixelOSD tim.c (GPL-2.0).
+    LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM15);
+    LL_TIM_InitTypeDef timer = {0};
+    timer.CounterMode = LL_TIM_COUNTERMODE_UP;
+    timer.Autoreload = VIDEO_LINE_START_TICKS;
+    timer.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
+    LL_TIM_Init(TIM15, &timer);
+    LL_TIM_SetOnePulseMode(TIM15, LL_TIM_ONEPULSEMODE_SINGLE);
+    LL_TIM_SetTriggerInput(TIM15, LL_TIM_TS_ITR1); // TIM2 TRGO
+    LL_TIM_SetSlaveMode(TIM15, LL_TIM_SLAVEMODE_COMBINED_RESETTRIGGER);
+    LL_TIM_SetTriggerOutput(TIM15, LL_TIM_TRGO_UPDATE);
+    LL_TIM_DisableMasterSlaveMode(TIM15);
 }
 
 

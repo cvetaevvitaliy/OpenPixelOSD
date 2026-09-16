@@ -72,7 +72,10 @@ void DAC3_Init(void)
     DAC_InitStruct.OutputConnection = LL_DAC_OUTPUT_CONNECT_INTERNAL;
     DAC_InitStruct.OutputMode = LL_DAC_OUTPUT_MODE_NORMAL;
     LL_DAC_Init(DAC3, LL_DAC_CHANNEL_1, &DAC_InitStruct);
+    // Match the timer-triggered output used by Telekatz. The renderer primes
+    // pixel zero, then DMA loads the next pixel after each update trigger.
     LL_DAC_EnableTrigger(DAC3, LL_DAC_CHANNEL_1);
+    LL_DAC_DisableDMAReq(DAC3, LL_DAC_CHANNEL_1);
 
     LL_DAC_DisableDMADoubleDataMode(DAC3, LL_DAC_CHANNEL_1);
 

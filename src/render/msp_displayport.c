@@ -11,6 +11,7 @@
 #include "msp.h"
 #include "hardware/uart.h"
 #include "hardware/usb.h"
+#include "video_overlay.h"
 
 
 typedef enum {
@@ -48,6 +49,7 @@ EXEC_RAM static void msp_callback(uint8_t owner, msp_version_t msp_version, uint
     case MSP_V1: {
         switch(msp_cmd) {
         case MSP_DISPLAYPORT: {
+            if (data_size == 0) break;
             msp_displayport_cmd_t sub_cmd = payload[0];
             switch(sub_cmd) {
             case MSP_DISPLAYPORT_KEEPALIVE: // 0 -> Open/Keep-Alive DisplayPort
@@ -55,7 +57,6 @@ EXEC_RAM static void msp_callback(uint8_t owner, msp_version_t msp_version, uint
                 static bool displayport_initialized = false;
                 if (!displayport_initialized) {
                     displayport_initialized = true;
-                    show_logo = false;
                     // Send canvas size to FC
                     uint8_t data[2] = {COLUMN_SIZE, ROW_SIZE};
                     uint8_t tx_buff[64];
@@ -85,11 +86,13 @@ EXEC_RAM static void msp_callback(uint8_t owner, msp_version_t msp_version, uint
                 uint8_t row = payload[1];
                 uint8_t col = payload[2];
                 if (row >= ROW_SIZE || col >= COLUMN_SIZE) break;
-                uint8_t len = data_size - 4;
+                uint16_t len = data_size - 4;
+                if (len > COLUMN_SIZE - col) len = COLUMN_SIZE - col;
                 memcpy(&canvas_char_map[active_buffer][row][col], (const char *)&payload[4], len);
             }
                 break;
             case MSP_DISPLAYPORT_DRAW_SCREEN: // 4 -> Draw Screen
+                show_logo = false;
                 canvas_char_draw_complete();
                 break;
             case MSP_DISPLAYPORT_SET_OPTIONS: // 5 -> Set Options (HDZero/iNav)
@@ -104,6 +107,29 @@ EXEC_RAM static void msp_callback(uint8_t owner, msp_version_t msp_version, uint
             update_font_symbol_write(payload[0], &payload[1], data_size - 1);
         }
             break;
+
+        case MSP_DEBUG: {
+            // Standard four-word debug response; does not change OSD state.
+            video_diagnostics_t status;
+            video_get_diagnostics(&status);
+            uint16_t words[4] = {
+                status.threshold_mv | ((uint16_t)status.input << 14) |
+                    (status.locked ? 0x8000U : 0) | (status.dma_errors ? 0x2000U : 0),
+                (uint16_t)status.captures,
+                (uint16_t)status.armed_lines,
+                (uint16_t)status.completed_lines
+            };
+            uint8_t payload_out[8];
+            for (unsigned i = 0; i < 4; i++) {
+                payload_out[2 * i] = words[i] & 0xff;
+                payload_out[2 * i + 1] = words[i] >> 8;
+            }
+            uint8_t tx_buff[32];
+            uint16_t len = construct_msp_command_v1(tx_buff, MSP_DEBUG, payload_out, sizeof(payload_out), MSP_OUTBOUND);
+            if (owner == MSP_OWNER_USB) usb_uart_write_bytes((const char *)tx_buff, len);
+            else if (owner == MSP_OWNER_UART) uart1_tx_dma(tx_buff, len);
+            break;
+        }
 
         default:
             printf("MSP command not parsed %d:0x%02X\r\n",msp_cmd, msp_cmd);

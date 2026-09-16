@@ -8,15 +8,14 @@
 #include "hardware/usb.h"
 #include "render/canvas_char.h"
 #include "render/video_overlay.h"
+#include <string.h>
 
 #include <stdio.h>
 
 
-#define LED_BLINK_INTERVAL 5000 // milliseconds
-#define LOGO_TIMEOUT_MS 4000 // 4 seconds
+#define LED_BLINK_INTERVAL 3000 // milliseconds
 
 void led_blink(void);
-void logo_timeout_check(void);
 
 
 
@@ -48,9 +47,10 @@ int main (void)
 
     while (1)
     {
+        video_sync_loop();
         #ifdef USE_MSP
-        extern bool show_logo;
-        !show_logo? msp_loop_process() : logo_timeout_check();
+        // Receive DisplayPort even while the startup logo is visible.
+        msp_loop_process();
         #endif
 
         #ifdef DEBUG_LED_BLINK
@@ -62,32 +62,9 @@ int main (void)
 void led_blink(void)
 {
     static uint32_t last_tick = 0;
-    static bool SwitchCamTest = false;
     if ((HAL_GetTick() - last_tick) >= LED_BLINK_INTERVAL) {
         LED_STATE_GPIO_Port->ODR ^= LED_STATE_Pin;
         last_tick = HAL_GetTick();
-        SwitchCamTest ? set_video_input(VIDEO_INPUT_2) : set_video_input(VIDEO_INPUT_1);
-        SwitchCamTest = ! SwitchCamTest;
-    }
-}
-
-void logo_timeout_check(void)
-{
-    static uint32_t boot_time = 0;
-    static bool timeout_checked = false;
-    extern bool show_logo;
-
-    // Initialize boot time on first call
-    if (boot_time == 0) {
-        boot_time = HAL_GetTick();
-    }
-
-    // Check if LOGO_TIMEOUT_MS has elapsed, clear logo and version string if so
-    if (!timeout_checked && (HAL_GetTick() - boot_time) >= LOGO_TIMEOUT_MS) {
-        show_logo = false;
-        // Clear the canvas to remove version string
-        canvas_char_clean();
-        canvas_char_draw_complete();
-        timeout_checked = true;
+        set_video_input(get_video_input() == VIDEO_INPUT_1 ? VIDEO_INPUT_2 : VIDEO_INPUT_1);
     }
 }

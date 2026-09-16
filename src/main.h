@@ -41,7 +41,16 @@
 #define DEBUG_LED_BLINK
 #define PAUSE_ON_FAILED_INIT 1
 
-#define INVERT_UART
+// Match Telekatz/standard USART1 wiring: PA9 TX, PA10 RX.
+// Define INVERT_UART only for a board with physically swapped TX/RX pins.
+ #define INVERT_UART
+
+// 360 pixels within the 50 us active-video window (170 MHz timer clock).
+#define VIDEO_PIXEL_TICKS 23U
+#define VIDEO_LINE_START_TICKS (5338U - (360U * VIDEO_PIXEL_TICKS) / 2U)
+#define VIDEO_LINE_END_TICKS 9690U // 57 us after the end of HSYNC
+#define VIDEO_BLACK_SAMPLE_TICKS 561U // 3.3 us, after color burst
+#define VIDEO_SYNC_SAMPLE_TICKS 1020U // 6 us into broad vertical sync
 
 
 typedef enum {
@@ -114,7 +123,15 @@ typedef enum {
 #define DAC8BIT_TO_MV(value)      (((uint32_t)(value) * 3300) / 255)
 #define DAC8BIT_FROM_MV(mV)       (((uint32_t)(mV) * 255) / 3300)
 
-#define VIDEO_DETECTION_DAC_VALUE DAC12BIT_FROM_MV(270)
+// Telekatz scans the comparator reference when no valid field is found.
+#define VIDEO_SYNC_START_MV 300U
+#define VIDEO_SYNC_MIN_MV 25U
+#define VIDEO_SYNC_MAX_MV 800U
+#define VIDEO_SYNC_STEP_MV 25U
+#define VIDEO_SYNC_SCAN_MS 40U // allow two PAL fields at each threshold
+#define VIDEO_SYNC_LOST_MS 100U
+// Retained for the legacy (disabled) video generator.
+#define VIDEO_DETECTION_DAC_VALUE DAC12BIT_FROM_MV(VIDEO_SYNC_START_MV)
 
 void gpio_init(void);
 void adc_init(void);
@@ -134,6 +151,7 @@ void TIM1_Init(void);
 void TIM2_Init(void);
 void TIM3_Init(void);
 void TIM4_Init(void);
+void TIM15_Init(void);
 void TIM7_Init(void);
 void TIM17_Init(void);
 
