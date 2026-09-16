@@ -76,18 +76,18 @@ The project is licensed under GPL‑2.0, as noted in the LICENSE file. With thes
 ### Hardware Architecture
 
 - The **STM32G431CBUx/G474 microcontroller** handles control and pixel data generation.
-- The input video signal is fed into the **OPAMP1 multiplexer input - PA7**, operating in **follower mode**, and to the comparator positive input `vin+` **COMP3 - PA0** for synchronization.
-- **DAC1 Channel 1** is used as the negative reference `vref-` for the comparator.
-- If no input video signal is present, **TIM17** generates a PWM signal on pin **PB5** to create the video signal.
-- To simplify the video signal detection logic and the generation of the internal video signal **TIM17** generates **reference video** signal by producing **PWM** on pin **PB5**, supporting interlaced or progressive scanning.
-- Due to the lack of internal synchronization between **TIM17**, **DMA1 Channel 6**, and **TIM1** for precise line start synchronization of the generated video signal, **COMP4** is used, connected via a **1:10** resistive divider to the `vin+` input of **COMP4** and to the **PA3** input of the **OPAMP1** multiplexer.
-- Comparators **COMP3** and **COMP4** are used for video signal "parsing" and line start detection.
+- The input video signal is fed via **PA7** into the **OPAMP1 multiplexer**, operating in **follower mode**, and to the comparator positive input `vin+` **COMP2** for synchronization.
+- **DAC3 Channel 2** is used as the negative reference `vref-` for the comparator.
+- If no input video signal is present, **TIM17** generates the timing for the video signal.
+- **TIM17** generates the sync pulses with **DMA1 Channel 5** and triggers the delay timer **TIM15** at line start. 
+- Comparator **COMP2** is used for video signal "parsing" and line start detection.
 - The output video signal is formed by mixing (fast switching) signals from the internal **DAC3 Channel 1** and the input video **PA7** via the built-in multiplexer.
-- **TIM2** and **TIM3** provide precise synchronization for line and frame start:
-  - TIM2 and TIM3 track line start and trigger pixel rendering accordingly.
-  - TIM1 handles pixel rendering in the line by transferring two buffers via **DMA1 Channel 1** and **DMA1 Channel 2**.
-  - DMA1 Channel 1 transfers the buffer containing precise timing information for switching the multiplexer connected to the OPAMP1 input.
-  - DMA1 Channel 2 transfers the buffer containing brightness values for each pixel to **DAC3 Channel 1** for pixel formation in the line.
+- **TIM2** and **TIM15** provide precise synchronization for line and frame start:
+  - **TIM2** track line start and trigger the delay timer **TIM15**.
+  - **TIM1** is triggered by **TIM15** and handles pixel rendering in the line by transferring two buffers via **DMA1 Channel 1** and **DMA2 Channel 1**.
+  - **DMA1 Channel 1** transfers the buffer containing precise timing information for switching the multiplexer connected to the OPAMP1 input.
+  - **DMA2 Channel 1** transfers the buffer containing brightness values for each pixel to **DAC3 Channel 1** for pixel formation in the line.
+  - **ADC1** is triggered by TIM2 and measures the black level of the video signal after the color burst. 
 
 ### Block Diagram
 ![OpenPixelOSD Block Diagram](doc/pic/internal-block-diagram.png)
