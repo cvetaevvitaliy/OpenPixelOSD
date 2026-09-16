@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 
-#define LED_BLINK_INTERVAL 100 // milliseconds
+#define LED_BLINK_INTERVAL 5000 // milliseconds
 #define LOGO_TIMEOUT_MS 4000 // 4 seconds
 
 void led_blink(void);
@@ -62,9 +62,12 @@ int main (void)
 void led_blink(void)
 {
     static uint32_t last_tick = 0;
+    static bool SwitchCamTest = false;
     if ((HAL_GetTick() - last_tick) >= LED_BLINK_INTERVAL) {
         LED_STATE_GPIO_Port->ODR ^= LED_STATE_Pin;
         last_tick = HAL_GetTick();
+        SwitchCamTest ? set_video_input(VIDEO_INPUT_2) : set_video_input(VIDEO_INPUT_1);
+        SwitchCamTest = ! SwitchCamTest;
     }
 }
 

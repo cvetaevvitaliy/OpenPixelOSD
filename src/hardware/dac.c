@@ -75,4 +75,16 @@ void DAC3_Init(void)
     LL_DAC_EnableTrigger(DAC3, LL_DAC_CHANNEL_1);
 
     LL_DAC_DisableDMADoubleDataMode(DAC3, LL_DAC_CHANNEL_1);
+
+    // DAC3 channel 2 provides the adjustable sync threshold for COMP2.
+    LL_DAC_SetSignedFormat(DAC3, LL_DAC_CHANNEL_2, LL_DAC_SIGNED_FORMAT_DISABLE);
+    DAC_InitStruct.TriggerSource = LL_DAC_TRIG_SOFTWARE;
+    DAC_InitStruct.TriggerSource2 = LL_DAC_TRIG_SOFTWARE;
+    DAC_InitStruct.WaveAutoGeneration = LL_DAC_WAVE_AUTO_GENERATION_NONE;
+    DAC_InitStruct.OutputBuffer = LL_DAC_OUTPUT_BUFFER_DISABLE;
+    DAC_InitStruct.OutputConnection = LL_DAC_OUTPUT_CONNECT_INTERNAL;
+    DAC_InitStruct.OutputMode = LL_DAC_OUTPUT_MODE_NORMAL;
+    LL_DAC_Init(DAC3, LL_DAC_CHANNEL_2, &DAC_InitStruct);
+    LL_DAC_DisableTrigger(DAC3, LL_DAC_CHANNEL_2);
+    LL_DAC_DisableDMADoubleDataMode(DAC3, LL_DAC_CHANNEL_2);
 }

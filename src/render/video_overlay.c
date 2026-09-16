@@ -19,9 +19,9 @@
 #define TIM2_TICK_MS        (1e6f / 170000000)
 
 // OPAMP1 multiplexer constants
-#define OPAMP_CONST_IO0     0x108000E1U  // Positive Input IO0 (e.g., PA1) -
-#define OPAMP_CONST_IO1     0x108000E5U  // Positive Input IO1 (e.g., PA3) - video generator input
-#define OPAMP_CONST_IO2     0x108000E9U  // Positive Input IO2 (e.g., PA7) - video input form camera
+#define OPAMP_CONST_IO0     0x108000E1U  // Positive Input IO0 (e.g., PA1)
+#define OPAMP_CONST_IO1     0x108000E5U  // Positive Input IO1 (PA3) - camera 1
+#define OPAMP_CONST_IO2     0x108000E9U  // Positive Input IO2 (PA7) - camera 2
 #define OPAMP_CONST_DAC     0x108000EDU  // Positive Input DAC1_OUT1 (internal DAC)
 
 #define PEXELS_PER_LINE     (360)
@@ -36,13 +36,24 @@
 #define MAX_RENDER_LINE     (305) // for PAL
 
 #define LOGO_OFFSET_X       (100)
-#define LOGO_OFFSET_Y       (25)
+#define LOGO_OFFSET_Y       (50)
+
+typedef struct {
+    uint32_t comp_input;
+    uint32_t opamp_input;
+} video_input_config_t;
+
+// COMP2 IO2=PA3 and IO1=PA7; OPAMP1 uses IO1=PA3 and IO2=PA7.
+static const video_input_config_t video_inputs[2] = {
+    { LL_COMP_INPUT_PLUS_IO2, OPAMP_CONST_IO1 },
+    { LL_COMP_INPUT_PLUS_IO1, OPAMP_CONST_IO2 }
+};
 
 static uint16_t dac_buff[2][LINE_BUF_SZ];   // DAC double buffer for draw pixel (12-bit CH1)  DMA HALF_WORLD/WORLD
 static uint32_t opamp_buff[2][LINE_BUF_SZ]; // double buffer for OPAMP1 multiplexer (32-bit)  DMA WORLD/WORLD
 CCMRAM_BSS static bool buf_idx = 0; // current buffer index for double buffering
-CCMRAM_DATA static uint32_t video_source = OPAMP_CONST_IO2; // OPAMP_CONST_IO1 - video gen, OPAMP_CONST_IO2 - video input
-extern volatile bool video_gen_enabled;
+CCMRAM_DATA static uint32_t video_source = OPAMP_CONST_IO1;
+CCMRAM_DATA static video_input_t active_video_input = VIDEO_INPUT_1;
 extern char canvas_char_map[2][ROW_SIZE][COLUMN_SIZE];
 extern uint8_t active_buffer;
 CCMRAM_DATA bool show_logo = true;
@@ -73,6 +84,29 @@ static void show_version(void)
     canvas_char_draw_complete();
 }
 
+void set_video_input(video_input_t input)
+{
+    if (input != VIDEO_INPUT_1 && input != VIDEO_INPUT_2) {
+        return;
+    }
+
+    active_video_input = input;
+
+    // Select the same physical pin for sync detection and video passthrough.
+    LL_COMP_SetInputPlus(COMP2, video_inputs[input].comp_input);
+    video_source = video_inputs[input].opamp_input;
+    OPAMP1->CSR = video_source;
+
+    // Start timing acquisition cleanly after switching cameras.
+    LL_TIM_SetCounter(TIM2, 0);
+    LL_TIM_ClearFlag_CC2(TIM2);
+}
+
+video_input_t get_video_input(void)
+{
+    return active_video_input;
+}
+
 void video_overlay_init(void)
 {
     init_buffers();
@@ -82,40 +116,29 @@ void video_overlay_init(void)
     video_graphics_init();
 #endif
 
-    DAC1_Init(); // DAC1_CH1 for video detection
-    DAC3_Init(); // DAC3_CH1 for render line
+    DAC3_Init(); // CH1 renders pixels; CH2 is the COMP2 sync threshold
     OPAMP1_Init(); // OPAMP1 as multiplexer for video source selection
     TIM1_Init(); // TIM1 for video line generation
     TIM2_Init(); // TIM2 detect HSYNC VSYNC video input
-    TIM3_Init(); // TIM3 detect HSYNC VSYNC video generator
-    TIM4_Init(); // TIM4 delay for start video generator
-    TIM17_Init(); // TIM17 for video generator output (PWM ~31.8us)
-    COMP3_Init(); // COMP3 for video sync detection
-    COMP4_Init(); // COMP4 for video generator sync detection
+    COMP2_Init(); // COMP2 detects sync on the selected camera input
+
+    set_video_input(VIDEO_INPUT_1); // Default: camera 1 on PA3
 
     LL_OPAMP_Enable(OPAMP1);
 
-    LL_COMP_Enable(COMP3);
-    LL_COMP_Enable(COMP4);
+    LL_DAC_Enable(DAC3, LL_DAC_CHANNEL_2);
+    LL_DAC_ConvertData12RightAligned(DAC3, LL_DAC_CHANNEL_2, VIDEO_DETECTION_DAC_VALUE);
+    LL_DAC_TrigSWConversion(DAC3, LL_DAC_CHANNEL_2);
 
-    LL_TIM_EnableIT_CC1(TIM2);
+    LL_COMP_Enable(COMP2);
+
+    LL_TIM_EnableIT_CC2(TIM2);
     LL_TIM_EnableCounter(TIM2);
-    LL_TIM_CC_EnableChannel(TIM2, LL_TIM_CHANNEL_CH1);
-
-    LL_TIM_EnableIT_CC1(TIM3);
-    LL_TIM_EnableCounter(TIM3);
-    LL_TIM_CC_EnableChannel(TIM3, LL_TIM_CHANNEL_CH1);
-
-    LL_DAC_Enable(DAC1, LL_DAC_CHANNEL_1);
-    LL_DAC_ConvertData12RightAligned(DAC1, LL_DAC_CHANNEL_1, VIDEO_DETECTION_DAC_VALUE);
-    LL_DAC_TrigSWConversion(DAC1, LL_DAC_CHANNEL_1);
+    LL_TIM_CC_EnableChannel(TIM2, LL_TIM_CHANNEL_CH2);
 
     LL_DAC_Enable(DAC3, LL_DAC_CHANNEL_1);
     LL_DAC_ConvertData12RightAligned(DAC3, LL_DAC_CHANNEL_1, DAC_BLACK);
     LL_DAC_TrigSWConversion(DAC3, LL_DAC_CHANNEL_1);
-
-    LL_TIM_EnableIT_UPDATE(TIM4);
-    LL_TIM_EnableCounter(TIM4);
 
     show_version();
 }
@@ -350,51 +373,27 @@ EXEC_RAM static inline void pars_video_signal(uint32_t tim_tick)
     }
 }
 
-// Called from COMP3 & TIM2 event (video input)
+// Called from the selected camera through COMP2 and TIM2 channel 2.
 EXEC_RAM void TIM2_IRQHandler(void)
 {
-    if (LL_TIM_IsActiveFlag_CC1(TIM2)) {
-        TIM4->CNT = 0;
-        video_source = OPAMP_CONST_IO2;
+    if (LL_TIM_IsActiveFlag_CC2(TIM2)) {
         OPAMP1->CSR = video_source;
-        if (video_gen_enabled == true) {
-            video_gen_stop();
-            LL_TIM_DisableCounter(TIM1);
-            LL_TIM_SetETRSource(TIM1, LL_TIM_TIM1_ETRSOURCE_COMP3);
-        } else {
-            pars_video_signal(TIM2->CCR1);
-        }
-        LL_TIM_ClearFlag_CC1(TIM2);
+        pars_video_signal(TIM2->CCR2);
+        LL_TIM_ClearFlag_CC2(TIM2);
     }
 }
 
-// Called form COMP4 & TIM3 event (video gen)
+// The external fallback generator is disabled because PA3 is camera input 1.
 EXEC_RAM void TIM3_IRQHandler(void)
 {
     if (LL_TIM_IsActiveFlag_CC1(TIM3)) {
-        TIM4->CNT = 0;
-        video_source = OPAMP_CONST_IO1;
-        OPAMP1->CSR = video_source;
-        if (video_gen_enabled == false) {
-            video_gen_start();
-            LL_TIM_DisableCounter(TIM1);
-            LL_TIM_SetETRSource(TIM1, LL_TIM_TIM1_ETRSOURCE_COMP4);
-        } else {
-            pars_video_signal(TIM3->CCR1);
-        }
         LL_TIM_ClearFlag_CC1(TIM3);
     }
 }
 
-// Called when video from the camera is not detected
 EXEC_RAM void TIM4_IRQHandler(void)
 {
     if (LL_TIM_IsActiveFlag_UPDATE(TIM4)) {
-        if (video_gen_enabled == false) {
-            video_gen_start();
-            LL_TIM_DisableCounter(TIM1);
-            LL_TIM_SetETRSource(TIM1, LL_TIM_TIM1_ETRSOURCE_COMP4);
-        }
         LL_TIM_ClearFlag_UPDATE(TIM4);
     }
 }
