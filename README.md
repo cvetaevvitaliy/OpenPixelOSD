@@ -54,7 +54,33 @@ The GitHub workflow in `.github/workflows/build.yml` checks out the repo, instal
 
 The project is licensed under GPL‑2.0, as noted in the LICENSE file. With these parts in mind, a newcomer can navigate the firmware, experiment with modifying fonts/logo data, and extend the OSD functionality.
 
-*Important configuration options live in the main `CMakeLists.txt`. The `TARGET_MCU` variable switches between `STM32G431` and `STM32G474` builds.*
+*Important configuration options live in the main `CMakeLists.txt`. The `TARGET_MCU` variable switches between `STM32G431` and `STM32G474` builds. The `TARGET_BOARD` variable selects a board directory under `src/targets/` (default `GENERIC`).*
+
+### Board targets
+
+Each board lives in its own directory `src/targets/<TARGET_BOARD>/`:
+
+* `target.h` – pin/resource defines plus, for a PA board, the PA bias/detector PID constants. Always on the include path; included via `#include "target.h"`.
+* `target.c` – the VTX power table. Required for a VTX board.
+* `target.cmake` – *optional* build-flag fragment, `include()`d automatically by `CMakeLists.txt`. Declares board properties:
+  * `set(TARGET_USE_VTX TRUE)` – compile the RTC6705/VTX/PA source set + `target.c`, define `USE_VTX`.
+  * `set(TARGET_USE_PA TRUE)` – define `USE_PA` (implies `TARGET_USE_VTX`).
+
+  A board with no `target.cmake` is a plain OSD board.
+
+Discovery is automatic: to add a board, create the directory with its `target.h` (plus `target.c` and `target.cmake` if it has a VTX/PA), then build with `-DTARGET_BOARD=<name>`. Nothing in `CMakeLists.txt` or the source tree needs editing. An unknown `TARGET_BOARD` fails configuration with a list of the available ones.
+
+**VTX/PA is a property of the board, not a build variant.** `BUILD_VARIANT` now only carries the orthogonal options `NO_OSC`, `BLINKY`, `MCO`, `PA_DEBUG` (combine with `+`). `PA_DEBUG` compiles in the PA closed-loop OSD debug overlay (`debug_pa_loop()` and its field-edge trigger); it is off by default.
+
+Current targets:
+
+* `GENERIC` (OSD only)
+* `GENERIC_VTX` (RTC6705, no PA)
+* `GENERIC_VTX_PA`
+* `GENERIC_VTX_PA_V2` (SE5004L-class linear external PA on the optimal `Cube/` pinout)
+* `GENERIC_VTX_PA_RTC76401` (The RTC76401 works, but not recommend due to its frequency range and efficiency)
+
+Example: `-DTARGET_BOARD=GENERIC_VTX -DBUILD_VARIANT=NO_OSC`.
 
 ## How It Works
 

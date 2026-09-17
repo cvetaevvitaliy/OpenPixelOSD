@@ -172,6 +172,69 @@ void TIM7_Init(void)
     LL_TIM_DisableMasterSlaveMode(TIM7);
 }
 
+void TIM8_Init(void)
+{
+  LL_TIM_InitTypeDef TIM_InitStruct = {0};
+  LL_TIM_OC_InitTypeDef TIM_OC_InitStruct = {0};
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* RGB LED DMA */
+  LL_DMA_SetPeriphRequest(DMA2, LL_DMA_CHANNEL_5, LL_DMAMUX_REQ_TIM8_UP);
+  LL_DMA_SetDataTransferDirection(DMA2, LL_DMA_CHANNEL_5, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+  LL_DMA_SetChannelPriorityLevel(DMA2, LL_DMA_CHANNEL_5, LL_DMA_PRIORITY_MEDIUM);
+  LL_DMA_SetMode(DMA2, LL_DMA_CHANNEL_5, LL_DMA_MODE_NORMAL);
+  LL_DMA_SetPeriphIncMode(DMA2, LL_DMA_CHANNEL_5, LL_DMA_PERIPH_NOINCREMENT);
+  LL_DMA_SetMemoryIncMode(DMA2, LL_DMA_CHANNEL_5, LL_DMA_MEMORY_INCREMENT);
+  LL_DMA_SetPeriphSize(DMA2, LL_DMA_CHANNEL_5, LL_DMA_PDATAALIGN_HALFWORD);
+  LL_DMA_SetMemorySize(DMA2, LL_DMA_CHANNEL_5, LL_DMA_MDATAALIGN_BYTE);
+
+
+  /* Peripheral clock enable */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM8);
+
+  TIM_InitStruct.Prescaler = 0;
+  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
+  TIM_InitStruct.Autoreload = 212;
+  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
+  TIM_InitStruct.RepetitionCounter = 0;
+  LL_TIM_Init(TIM8, &TIM_InitStruct);
+  LL_TIM_DisableARRPreload(TIM8);
+  LL_TIM_SetClockSource(TIM8, LL_TIM_CLOCKSOURCE_INTERNAL);
+  LL_TIM_OC_EnablePreload(TIM8, LL_TIM_CHANNEL_CH1);
+  TIM_OC_InitStruct.OCMode = LL_TIM_OCMODE_PWM1;
+  TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_ENABLE;
+  TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_DISABLE;
+  TIM_OC_InitStruct.CompareValue = 0;
+  TIM_OC_InitStruct.OCPolarity = LL_TIM_OCPOLARITY_HIGH;
+  TIM_OC_InitStruct.OCNPolarity = LL_TIM_OCPOLARITY_HIGH;
+  TIM_OC_InitStruct.OCIdleState = LL_TIM_OCIDLESTATE_LOW;
+  TIM_OC_InitStruct.OCNIdleState = LL_TIM_OCIDLESTATE_LOW;
+  LL_TIM_OC_Init(TIM8, LL_TIM_CHANNEL_CH1, &TIM_OC_InitStruct);
+  LL_TIM_OC_DisableFast(TIM8, LL_TIM_CHANNEL_CH1);
+  LL_TIM_SetTriggerOutput(TIM8, LL_TIM_TRGO_UPDATE);
+  LL_TIM_SetTriggerOutput2(TIM8, LL_TIM_TRGO2_RESET);
+  LL_TIM_DisableMasterSlaveMode(TIM8);
+
+  LL_TIM_EnableCounter(TIM8);
+  LL_TIM_CC_EnableChannel(TIM8, LL_TIM_CHANNEL_CH1);
+  LL_TIM_EnableAllOutputs(TIM8);
+
+  LL_TIM_EnableDMAReq_UPDATE(TIM8);
+
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+    /**TIM8 GPIO Configuration
+    PA15     ------> TIM8_CH1
+    */
+  GPIO_InitStruct.Pin = RGBLED_TIM8_CH1_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
+  LL_GPIO_Init(RGBLED_TIM8_CH1_GPIO_Port, &GPIO_InitStruct);
+
+}
+
 void TIM17_Init(void)
 {
     LL_TIM_InitTypeDef TIM_InitStruct = {0};
